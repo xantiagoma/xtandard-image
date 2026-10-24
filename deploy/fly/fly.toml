@@ -1,0 +1,66 @@
+# Fly.io, image fleet (docs/DEPLOY.md "Fly.io").
+#
+#   fly apps create my-xtandard-image
+#   fly secrets set XI_SIGNING_KEYS=<hex> XI_SIGNING_SALTS=<hex> -a my-xtandard-image
+#   fly deploy -c deploy/fly/fly.toml -a my-xtandard-image
+#   fly scale count 10 -a my-xtandard-image        # the MAXIMUM: Fly never creates Machines
+#
+# Autoscaling on Fly is autostop/autostart of Machines that already exist: `fly scale count N`
+# sets the maximum, `min_machines_running` the minimum that never stops (primary region only),
+# and the proxy starts a stopped Machine when the running ones pass their soft_limit.
+app = "my-xtandard-image"
+primary_region = "iad"
+# SIGTERM → /readyz 503 → XI_SERVER_SHUTDOWN_DELAY (5s) → drain up to 30s. Max 300 s on Fly.
+kill_signal = "SIGTERM"
+kill_timeout = 40
+
+[build]
+  # Private GHCR package: `fly auth docker` or deploy with --image from a registry Fly can pull.
+  image = "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim"
+
+[env]
+  XI_SOURCES = "web"
+  XI_SOURCES_WEB_TYPE = "http"
+  XI_SOURCES_WEB_ALLOW = "images.example.com"
+  XI_CACHE_RESULT_STORES = "memory"
+  XI_CACHE_RESULT_MEMORY_BYTES = "256MiB"
+  # Fly scrapes [[metrics]] over its private network: listen on every interface. The port is
+  # not in [http_service], so it is never public.
+  XI_ADMIN_ADDR = ":9090"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # "stop" frees CPU and RAM of idle Machines; "suspend" resumes faster but keeps memory state.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # 0 = scale to zero (first request after idle waits for a cold start, about 1-2 s).
+  min_machines_running = 2
+
+  [http_service.concurrency]
+    # Requests, not connections: HTTP/2 and keep-alive multiplex many requests per connection.
+    type = "requests"
+    # About 2x the worker count (workers = vCPUs): above it the proxy prefers or starts another
+    # Machine; hard_limit is where it stops sending more (the server's own queue answers 429
+    # past XI_PROCESSING_QUEUE_SIZE anyway).
+    soft_limit = 8
+    hard_limit = 64
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "10s"
+    timeout = "3s"
+    method = "GET"
+    path = "/readyz"
+
+[[vm]]
+  # Workers follow the vCPU count; GOMEMLIMIT follows the memory.
+  size = "performance-2x"
+  memory = "4gb"
+
+[[metrics]]
+  port = 9090
+  path = "/metrics"
+
+[[restart]]
+  policy = "always"

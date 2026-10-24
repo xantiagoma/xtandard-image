@@ -1,0 +1,42 @@
+# Coolify v4, "Docker Compose" build pack (docs/DEPLOY.md "Coolify").
+#
+# SERVICE_FQDN_XI_8080 is a Coolify magic variable: Coolify generates a domain for this service
+# and routes it to port 8080 (edit the domain in the UI). Set XI_SIGNING_KEYS, XI_SIGNING_SALTS
+# and XI_SOURCES_WEB_ALLOW in the Environment Variables tab. Coolify v4 runs one container per
+# service (no replicas, no autoscaling; its Swarm mode is deprecated): scale by running the same
+# compose on several servers behind a load balancer, or use Swarm/Kubernetes.
+services:
+  xtandard-image:
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_XI_8080
+      - XI_SIGNING_KEYS=${XI_SIGNING_KEYS}
+      - XI_SIGNING_SALTS=${XI_SIGNING_SALTS}
+      - XI_SOURCES=web
+      - XI_SOURCES_WEB_TYPE=http
+      - XI_SOURCES_WEB_ALLOW=${XI_SOURCES_WEB_ALLOW:-images.example.com}
+      - XI_CACHE_RESULT_STORES=memory,disk
+      - XI_CACHE_RESULT_DISK_PATH=/var/tmp/xtandard-cache
+      - XI_CACHE_RESULT_DISK_BYTES=4GiB
+    volumes:
+      # Disk cache; the image's /var/tmp is mode 1777, copied into the new volume.
+      - xi-cache:/var/tmp
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 40s
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 2g }
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/xtandard-image", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  xi-cache:

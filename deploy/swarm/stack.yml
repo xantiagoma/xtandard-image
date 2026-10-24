@@ -1,0 +1,79 @@
+# xtandard-image as a Docker Swarm stack (docs/DEPLOY.md "Docker Swarm").
+#
+#   docker stack deploy -c deploy/swarm/stack.yml xi
+#   docker service scale xi_xtandard-image=6          # manual scaling: Swarm has no autoscaler
+#
+# Secrets: XI_SIGNING_KEYS/SALTS come from the environment of `docker stack deploy` here; in
+# production create Docker secrets and point the _FILE variables at them (commented below).
+#
+# Notes on Swarm (checked against the docker/cli stack converter):
+# - The service-level `tmpfs:` key is ignored by `docker stack deploy`; /tmp is a tmpfs mount
+#   under `volumes:` instead.
+# - `security_opt`, `restart` and `cap_drop` are not used by stack deploy; Swarm runs tasks with
+#   `no-new-privileges` off, so rely on the image's non-root user (65532) and the read-only rootfs.
+# - Swarm kills a task whose HEALTHCHECK fails and keeps it out of the routing mesh until it is
+#   healthy; the image's own HEALTHCHECK (GET /healthz) is used.
+services:
+  xtandard-image:
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    read_only: true
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: { size: 67108864 }
+    ports:
+      - target: 8080
+        published: ${XI_PUBLISH_PORT:-8080}
+        protocol: tcp
+        mode: ingress
+    environment:
+      XI_ADMIN_ADDR: ":9090"
+      XI_SIGNING_KEYS: ${XI_SIGNING_KEYS:?set XI_SIGNING_KEYS}
+      XI_SIGNING_SALTS: ${XI_SIGNING_SALTS:?set XI_SIGNING_SALTS}
+      # XI_SIGNING_KEYS_FILE: /run/secrets/xi_signing_keys
+      # XI_SIGNING_SALTS_FILE: /run/secrets/xi_signing_salts
+      XI_SOURCES: web
+      XI_SOURCES_WEB_TYPE: http
+      XI_SOURCES_WEB_ALLOW: ${XI_SOURCES_WEB_ALLOW:-images.example.com}
+      XI_CACHE_RESULT_STORES: memory
+    # secrets: [xi_signing_keys, xi_signing_salts]
+    # SIGTERM → /readyz 503 → 5 s → drain up to 30 s.
+    stop_grace_period: 40s
+    networks: [xi]
+    deploy:
+      mode: replicated
+      replicas: 2
+      # Workers follow the CPU limit; GOMEMLIMIT follows the memory limit.
+      resources:
+        limits: { cpus: "2", memory: 2G }
+        reservations: { cpus: "1", memory: 1G }
+      placement:
+        max_replicas_per_node: 4
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 60s
+      # Rolling update: start the new task first, one at a time, roll back on failure.
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
+        failure_action: pause
+        monitor: 30s
+
+networks:
+  # Attach a Prometheus (or an OTel Collector) to this network to scrape :9090; it is not published.
+  xi:
+    driver: overlay
+    attachable: true
+
+# secrets:
+#   xi_signing_keys: { external: true }   # printf %s "$(openssl rand -hex 32)" | docker secret create xi_signing_keys -
+#   xi_signing_salts: { external: true }

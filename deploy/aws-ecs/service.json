@@ -1,0 +1,30 @@
+{
+  "cluster": "xtandard",
+  "serviceName": "xtandard-image",
+  "taskDefinition": "xtandard-image",
+  "desiredCount": 2,
+  "launchType": "FARGATE",
+  "platformVersion": "LATEST",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"],
+      "securityGroups": ["sg-0123456789abcdef0"],
+      "assignPublicIp": "DISABLED"
+    }
+  },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/xtandard-image/0123456789abcdef",
+      "containerName": "xtandard-image",
+      "containerPort": 8080
+    }
+  ],
+  "healthCheckGracePeriodSeconds": 15,
+  "deploymentConfiguration": {
+    "minimumHealthyPercent": 100,
+    "maximumPercent": 200,
+    "deploymentCircuitBreaker": { "enable": true, "rollback": true }
+  },
+  "propagateTags": "SERVICE",
+  "enableExecuteCommand": false
+}
