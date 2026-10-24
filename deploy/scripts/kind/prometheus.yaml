@@ -1,0 +1,77 @@
+# Minimal Prometheus for the kind autoscaling check (kind-autoscale.sh).
+# It discovers the admin port of xtandard-image Services and gives series the
+# labels a prometheus-operator ServiceMonitor would (namespace, service,
+# pod, job = Service name), so the chart's default KEDA selector works.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: prometheus, namespace: monitoring }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: xi-check-prometheus }
+rules:
+  - apiGroups: [""]
+    resources: [services, endpoints, pods]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: xi-check-prometheus }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: xi-check-prometheus }
+subjects:
+  - { kind: ServiceAccount, name: prometheus, namespace: monitoring }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: prometheus, namespace: monitoring }
+data:
+  prometheus.yml: |
+    global: { scrape_interval: 5s, evaluation_interval: 5s }
+    scrape_configs:
+      - job_name: xtandard-image
+        kubernetes_sd_configs: [{ role: endpointslice }]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_name, __meta_kubernetes_endpointslice_port_name]
+            regex: xtandard-image;admin
+            action: keep
+          - { source_labels: [__meta_kubernetes_namespace], target_label: namespace }
+          - { source_labels: [__meta_kubernetes_service_name], target_label: service }
+          - { source_labels: [__meta_kubernetes_service_name], target_label: job }
+          - { source_labels: [__meta_kubernetes_pod_name], target_label: pod }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: prometheus, namespace: monitoring }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: prometheus } }
+  template:
+    metadata: { labels: { app: prometheus } }
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.7.3
+          args: [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.path=/prometheus]
+          ports: [{ containerPort: 9090, name: http }]
+          volumeMounts:
+            - { name: config, mountPath: /etc/prometheus }
+            - { name: data, mountPath: /prometheus }
+      volumes:
+        - { name: config, configMap: { name: prometheus } }
+        - { name: data, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: prometheus, namespace: monitoring }
+spec:
+  selector: { app: prometheus }
+  ports: [{ name: http, port: 9090, targetPort: http }]

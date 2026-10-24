@@ -1,0 +1,38 @@
+name: deploy
+
+# Static checks of deploy/ (Helm chart, Kustomize, Prometheus rules and their
+# unit tests, Grafana dashboard, local stack): deploy/scripts/check.sh, which
+# runs every tool from a pinned container image (docs/OPERATIONS.md §8).
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the job
+# runs only when the repository variable XI_DEPLOY_WORKFLOW is "enabled".
+# Locally: `task deploy:check`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'deploy/**'
+      - 'docs/OPERATIONS.md'
+      - 'docs/CONFIG.md'
+      - 'internal/obs/metrics/**'
+      - 'testdata/fixtures/jpeg/**'
+      - '.github/workflows/deploy.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: deploy files (helm, kustomize, promtool, dashboard)
+    if: vars.XI_DEPLOY_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh deploy/scripts/check.sh

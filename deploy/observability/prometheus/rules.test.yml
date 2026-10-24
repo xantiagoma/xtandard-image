@@ -1,0 +1,159 @@
+# promtool test rules deploy/observability/prometheus/rules.test.yml
+rule_files:
+  - rules.yml
+
+evaluation_interval: 30s
+
+tests:
+  # Healthy traffic: 10 req/s, all 200, fast. No alert fires.
+  - interval: 30s
+    input_series:
+      - series: 'xi_requests_total{job="xtandard-image",instance="a:9090",dialect="imgproxy",status="200",format="webp"}'
+        values: '0+300x240'
+      - series: 'up{job="xtandard-image",instance="a:9090"}'
+        values: '1x240'
+      - series: 'xi_panics_total{job="xtandard-image",instance="a:9090"}'
+        values: '0x240'
+    alert_rule_test:
+      - { eval_time: 2h, alertname: XtandardImageAvailabilityBurnFast, exp_alerts: [] }
+      - { eval_time: 2h, alertname: XtandardImageTargetDown, exp_alerts: [] }
+      - { eval_time: 2h, alertname: XtandardImagePanics, exp_alerts: [] }
+    promql_expr_test:
+      - expr: job:xi_requests:rate5m
+        eval_time: 1h
+        exp_samples:
+          - labels: 'job:xi_requests:rate5m{job="xtandard-image"}'
+            value: 10
+
+  # 5 % of requests shed with 429 for two hours: fast and slow availability
+  # burns and the overload alert fire; 502s do not count against the SLO.
+  - interval: 30s
+    input_series:
+      - series: 'xi_requests_total{job="xtandard-image",instance="a:9090",dialect="imgproxy",status="200",format="webp"}'
+        values: '0+240x240'
+      - series: 'xi_requests_total{job="xtandard-image",instance="a:9090",dialect="imgproxy",status="429",format=""}'
+        values: '0+30x240'
+      - series: 'xi_requests_total{job="xtandard-image",instance="a:9090",dialect="imgproxy",status="502",format=""}'
+        values: '0+30x240'
+      - series: 'xi_overload_total{job="xtandard-image",instance="a:9090",reason="queue_full"}'
+        values: '0+30x240'
+    promql_expr_test:
+      # 30 / (240 + 30 + 30) per 30 s.
+      - expr: job:xi_slo_errors:ratio_rate1h
+        eval_time: 2h
+        exp_samples:
+          - labels: 'job:xi_slo_errors:ratio_rate1h{job="xtandard-image"}'
+            value: 0.1
+    alert_rule_test:
+      - eval_time: 2h
+        alertname: XtandardImageAvailabilityBurnFast
+        exp_alerts:
+          - exp_labels: { severity: critical, job: xtandard-image }
+            exp_annotations:
+              summary: "xtandard-image is burning its availability budget fast"
+              description: "10% of requests failed (5xx except 502, or 429) over the last hour. Check xi_overload_total (capacity, max replicas) and the logs for 500s."
+      - eval_time: 2h
+        alertname: XtandardImageOverloaded
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image }
+            exp_annotations:
+              summary: "xtandard-image sheds more than 5 % of requests"
+              description: "10% of requests get 429/503 from admission control. The autoscaler is at its maximum or too slow; raise maxReplicas or the CPU limit."
+      - eval_time: 2h
+        alertname: XtandardImageUpstreamErrors
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image }
+            exp_annotations:
+              summary: "xtandard-image: more than 5 % of requests fail at the origin"
+              description: "502/504 mean the source failed or timed out (XI_FETCH_TIMEOUT). Check xi_source_fetch_duration_seconds by source."
+
+  # Target down, a panic and restarts.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="xtandard-image",instance="a:9090"}'
+        values: '1 1 0 0 0 0 0 0 0 0'
+      - series: 'xi_panics_total{job="xtandard-image",instance="b:9090"}'
+        values: '0 0 0 1 1 1 1 1 1 1'
+      - series: 'process_start_time_seconds{job="xtandard-image",instance="b:9090"}'
+        values: '100 100 200 200 300 300 400 400 400 400'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: XtandardImageTargetDown
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image, instance: "a:9090" }
+            exp_annotations:
+              summary: "xtandard-image target a:9090 is down"
+              description: "Prometheus cannot scrape a:9090 (xtandard-image) on the admin listener (XI_ADMIN_ADDR) for 5 minutes."
+      - eval_time: 5m
+        alertname: XtandardImagePanics
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image, instance: "b:9090" }
+            exp_annotations:
+              summary: "b:9090 recovered a handler panic"
+              description: "xi_panics_total grew; the request got a 500. Search the logs for \"panic\" and report it."
+      - eval_time: 9m
+        alertname: XtandardImageRestarting
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image, instance: "b:9090" }
+            exp_annotations:
+              summary: "b:9090 restarted 3 times in 30 minutes"
+              description: "Out of memory (the memory limit) or a native crash. Check the pod's last state and the previous container's log."
+
+  # Saturated queue: 2 workers, 4 jobs; memory near a 2 GiB limit.
+  - interval: 1m
+    input_series:
+      - series: 'xi_queue_depth{job="xtandard-image",instance="a:9090"}'
+        values: '4x20'
+      - series: 'go_sched_gomaxprocs_threads{job="xtandard-image",instance="a:9090"}'
+        values: '2x20'
+      # GOMEMLIMIT = 0.3 x 2 GiB; RSS 1.9 GiB.
+      - series: 'go_gc_gomemlimit_bytes{job="xtandard-image",instance="a:9090"}'
+        values: '644245094.4x20'
+      - series: 'process_resident_memory_bytes{job="xtandard-image",instance="a:9090"}'
+        values: '2040109465.6x20'
+    promql_expr_test:
+      - expr: job:xi_queue_utilisation:ratio
+        eval_time: 5m
+        exp_samples:
+          - labels: 'job:xi_queue_utilisation:ratio{job="xtandard-image"}'
+            value: 2
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: XtandardImageQueueSaturated
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image }
+            exp_annotations:
+              summary: "xtandard-image processing queue is saturated"
+              description: "There are 2 jobs per worker (running + waiting) for 10 minutes."
+      - eval_time: 15m
+        alertname: XtandardImageMemoryNearLimit
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image, instance: "a:9090" }
+            exp_annotations:
+              summary: "a:9090 RSS is above 90 % of its memory limit"
+              description: "Set XI_PROCESSING_MEMORY_BUDGET, lower XI_PROCESSING_WORKERS or raise the memory limit (docs/OPERATIONS.md §1)."
+
+  # Video pool rejecting and failing.
+  - interval: 1m
+    input_series:
+      - series: 'xi_video_transform_overload_total{job="xtandard-image-video",instance="v:9090",reason="queue_full"}'
+        values: '0+12x30'
+      - series: 'xi_video_transform_duration_seconds_count{job="xtandard-image-video",instance="v:9090",result="ok"}'
+        values: '0+6x30'
+      - series: 'xi_video_transform_duration_seconds_count{job="xtandard-image-video",instance="v:9090",result="timeout"}'
+        values: '0+4x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: XtandardImageVideoOverloaded
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image-video }
+            exp_annotations:
+              summary: "xtandard-image-video rejects video transformations"
+              description: "0.20 rejections/s from the video pool (queue_full, queue_cost, wait_timeout). Scale the video fleet."
+      - eval_time: 25m
+        alertname: XtandardImageVideoFailures
+        exp_alerts:
+          - exp_labels: { severity: warning, job: xtandard-image-video }
+            exp_annotations:
+              summary: "xtandard-image-video: more than 10 % of video transformations fail"
+              description: "Results other than ok and canceled (timeouts, limits, corrupt sources). See xi_video_transform_duration_seconds_count by result."
