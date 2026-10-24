@@ -1,0 +1,173 @@
+{{- if not (has .Values.role (list "all" "image" "video")) }}
+{{- fail "role must be all, image or video" }}
+{{- end }}
+{{- if and (include "xi.videoEnabled" .) (eq .Values.image.flavor "slim") (not .Values.image.digest) (not .Values.image.tag) }}
+{{- fail "video transformations need image.flavor full or gpl (slim has no FFmpeg)" }}
+{{- end }}
+{{- $video := include "xi.videoEnabled" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "xi.fullname" . }}
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 25%, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      {{- include "xi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "xi.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "xi.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      # Service links would inject <SERVICE>_PORT... variables; for a
+      # Service named xi-… they start with XI_ and the server refuses
+      # unknown XI_* variables at startup.
+      enableServiceLinks: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ include "xi.terminationGracePeriod" . }}
+      {{- if .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        {{- range $key := list "topology.kubernetes.io/zone" "kubernetes.io/hostname" }}
+        - maxSkew: 1
+          topologyKey: {{ $key }}
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "xi.selectorLabels" $ | nindent 14 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: xtandard-image
+          image: {{ include "xi.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 8080, protocol: TCP }
+            - { name: admin, containerPort: {{ .Values.admin.port }}, protocol: TCP }
+          envFrom:
+            - configMapRef:
+                name: {{ include "xi.fullname" . }}-env
+            {{- with .Values.existingSecret }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+            {{- with .Values.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # Chart-managed settings; env wins over envFrom.
+          env:
+            - { name: XI_ROLE, value: {{ .Values.role | quote }} }
+            - { name: XI_ADMIN_ADDR, value: {{ printf ":%v" .Values.admin.port | quote }} }
+            - { name: XI_SERVER_ADDR, value: ":8080" }
+            - { name: XI_SERVER_SHUTDOWN_DELAY, value: {{ .Values.shutdown.delay | quote }} }
+            - { name: XI_SERVER_SHUTDOWN_TIMEOUT, value: {{ include "xi.shutdownTimeout" . | quote }} }
+            {{- with include "xi.goMemLimit" . }}
+            - { name: GOMEMLIMIT, value: {{ . | quote }} }
+            {{- end }}
+            {{- if .Values.configFile }}
+            - { name: XI_CONFIG_FILE, value: /etc/xtandard/config.yaml }
+            {{- end }}
+            {{- if $video }}
+            - { name: XI_VIDEO_TRANSFORM_ENABLED, value: "true" }
+            - { name: XI_VIDEO_TRANSFORM_SPOOL_DIR, value: {{ .Values.spool.mountPath | quote }} }
+            - { name: XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES, value: {{ .Values.spool.maxBytes | quote }} }
+            {{- with .Values.video.workers }}
+            - { name: XI_VIDEO_TRANSFORM_WORKERS, value: {{ . | toString | quote }} }
+            {{- end }}
+            {{- end }}
+            {{- if .Values.resultCache.disk.enabled }}
+            - { name: XI_CACHE_RESULT_DISK_PATH, value: {{ .Values.resultCache.disk.mountPath | quote }} }
+            - { name: XI_CACHE_RESULT_DISK_BYTES, value: {{ .Values.resultCache.disk.maxBytes | quote }} }
+            {{- if not (hasKey .Values.config "XI_CACHE_RESULT_STORES") }}
+            - { name: XI_CACHE_RESULT_STORES, value: "memory,disk" }
+            {{- end }}
+            {{- end }}
+            {{- with .Values.otel.endpoint }}
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: {{ . | quote }} }
+            - { name: OTEL_SERVICE_NAME, value: {{ default (include "xi.fullname" $) $.Values.otel.serviceName | quote }} }
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: {{ printf "k8s.namespace.name=%s,xi.role=%s" $.Release.Namespace $.Values.role | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            {{- toYaml .Values.probes.startup | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.probes.readiness | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.probes.liveness | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            {{- if .Values.configFile }}
+            - { name: config, mountPath: /etc/xtandard, readOnly: true }
+            {{- end }}
+            {{- if $video }}
+            - { name: spool, mountPath: {{ .Values.spool.mountPath }} }
+            {{- end }}
+            {{- if .Values.resultCache.disk.enabled }}
+            - { name: result-cache, mountPath: {{ .Values.resultCache.disk.mountPath }} }
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: {{ .Values.tmp.sizeLimit }} }
+        {{- if .Values.configFile }}
+        - name: config
+          configMap:
+            name: {{ include "xi.fullname" . }}-config
+        {{- end }}
+        {{- if $video }}
+        - name: spool
+          emptyDir: { sizeLimit: {{ .Values.spool.sizeLimit }} }
+        {{- end }}
+        {{- if .Values.resultCache.disk.enabled }}
+        - name: result-cache
+          emptyDir: { sizeLimit: {{ .Values.resultCache.disk.sizeLimit }} }
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

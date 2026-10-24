@@ -1,0 +1,50 @@
+# deploy/scripts/check.sh renders this with every toggle on (role all with
+# video, HPA with a custom metric, config file, disk cache, monitoring).
+role: all
+image:
+  flavor: gpl
+video:
+  enabled: true
+  workers: 2
+existingSecret: xi-secrets
+configFile: |
+  sources:
+    web:
+      type: http
+      allow: [https://images.example.com]
+resultCache:
+  disk:
+    enabled: true
+autoscaling:
+  type: hpa
+  hpa:
+    extraMetrics:
+      - type: Pods
+        pods:
+          metric: { name: xi_queue_depth }
+          target: { type: AverageValue, averageValue: 1500m }
+serviceMonitor:
+  enabled: true
+prometheusRule:
+  enabled: true
+grafanaDashboard:
+  enabled: true
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    - hosts: [images.example.com]
+      secretName: images-example-com-tls
+otel:
+  endpoint: http://otel-collector:4318
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/xtandard-image-read
+networkPolicy:
+  egress:
+    extraRules:
+      - to:
+          - namespaceSelector:
+              matchLabels: { kubernetes.io/metadata.name: storage }
+        ports:
+          - { port: 9000, protocol: TCP }

@@ -1,0 +1,276 @@
+# Default values for the xtandard-image chart. Operator guide (sizing,
+# autoscaling, CDN, observability): docs/OPERATIONS.md. Every XI_* variable:
+# docs/CONFIG.md §2.
+#
+# Install it once per fleet:
+#   helm install xi-image deploy/helm/xtandard-image -f deploy/helm/values-image.yaml
+#   helm install xi-video deploy/helm/xtandard-image -f deploy/helm/values-video.yaml
+
+nameOverride: ""
+fullnameOverride: ""
+
+# What this release serves (XI_ROLE): all, image or video. "video" needs an
+# image with FFmpeg (flavor full or gpl) and turns video transformations
+# and the spool volume on.
+role: all
+
+image:
+  repository: ghcr.io/xantiagoma/xtandard-image
+  # slim (no FFmpeg), full (FFmpeg LGPL, MP4 = AV1) or gpl (MP4 = H.264).
+  flavor: slim
+  # Defaults to "<appVersion>-<flavor>".
+  tag: ""
+  # sha256:… pins the image; wins over tag.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Used only when autoscaling.enabled is false.
+replicaCount: 2
+
+# Non-secret XI_* settings, rendered into a ConfigMap and loaded with
+# envFrom. Values must be strings. Secrets go in existingSecret.
+config:
+  XI_SOURCES: origin
+  XI_SOURCES_ORIGIN_TYPE: http
+  XI_SOURCES_ORIGIN_ALLOW: images.example.com
+  XI_OBSERVABILITY_LOG_LEVEL: info
+
+# Optional config file (YAML, docs/CONFIG.md §3), mounted at
+# /etc/xtandard/config.yaml with XI_CONFIG_FILE pointing at it. Environment
+# variables override it. Keep it free of secrets ({file: …} references).
+configFile: ""
+
+# Secret whose keys are loaded as environment variables (XI_SIGNING_KEYS,
+# XI_SIGNING_SALTS, source credentials, XI_CACHE_RESULT_REDIS_URL, ...).
+# Create it yourself (kubectl, External Secrets, Sealed Secrets).
+existingSecret: ""
+
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+
+admin:
+  # The admin listener (/metrics, pprof with XI_ADMIN_PPROF, the
+  # playground). Bound on every interface for scraping; the NetworkPolicy
+  # keeps it to the monitoring namespace. Never route it from an Ingress.
+  port: 9090
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+video:
+  # XI_VIDEO_TRANSFORM_ENABLED for role "all" (needs flavor full or gpl).
+  # role "video" forces it on; role "image" ignores it.
+  enabled: false
+  # XI_VIDEO_TRANSFORM_WORKERS; empty keeps the server default
+  # (GOMAXPROCS/4). A dedicated video fleet usually sets the CPU limit.
+  workers: ""
+
+# Disk-backed spool for large video sources and outputs
+# (XI_VIDEO_TRANSFORM_SPOOL_DIR). Mounted whenever video transformations
+# are on. An emptyDir on node disk (never medium: Memory).
+spool:
+  mountPath: /spool
+  sizeLimit: 20Gi
+  # XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES, below sizeLimit so the server
+  # answers 503 before the kubelet evicts the pod.
+  maxBytes: 16GiB
+
+resultCache:
+  # Disk tier of the result cache on an emptyDir (lost with the pod; use
+  # Redis or S3 for a shared tier, docs/OPERATIONS.md §5). Sets
+  # XI_CACHE_RESULT_DISK_PATH/_BYTES and, unless config sets it,
+  # XI_CACHE_RESULT_STORES=memory,disk.
+  disk:
+    enabled: false
+    mountPath: /cache
+    sizeLimit: 10Gi
+    maxBytes: 9GiB
+
+# Drain on SIGTERM: readiness 503 for delay, then up to timeout for in-flight
+# requests. Empty timeout: 30s, or 150s with video transformations (a
+# transcode may run XI_VIDEO_TRANSFORM_TIMEOUT, 2m).
+shutdown:
+  delay: 5s
+  timeout: ""
+# Empty: delay + timeout + 10s.
+terminationGracePeriodSeconds: null
+
+# CPU limit = processing workers (GOMAXPROCS); memory limit -> GOMEMLIMIT
+# (30 %). Requests equal limits for CPU so the HPA's percentage means
+# workers busy. docs/OPERATIONS.md §2.
+resources:
+  requests: { cpu: "2", memory: 1Gi }
+  limits: { cpu: "2", memory: 2Gi }
+
+# GOMEMLIMIT for the Go heap. "auto": 30 % of limits.memory (written in Mi
+# or Gi), the share ARCHITECTURE §11 reserves for Go; the rest is libvips,
+# FFmpeg and jemalloc. A value ("600MiB") is used as is; "" sets none.
+goMemLimit: auto
+
+autoscaling:
+  enabled: true
+  # hpa (CPU, plus hpa.extraMetrics) or keda (queue, overload and CPU
+  # triggers from Prometheus; KEDA 2.x must be installed).
+  type: hpa
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 65
+  # Scale up fast, down slow (docs/OPERATIONS.md §3).
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - { type: Percent, value: 100, periodSeconds: 15 }
+        - { type: Pods, value: 4, periodSeconds: 15 }
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+      policies:
+        - { type: Percent, value: 20, periodSeconds: 60 }
+  hpa:
+    # Extra autoscaling/v2 metrics, e.g. the per-pod queue through
+    # prometheus-adapter:
+    #   - type: Pods
+    #     pods: { metric: { name: xi_queue_depth }, target: { type: AverageValue, averageValue: 1500m } }
+    extraMetrics: []
+  keda:
+    serverAddress: http://prometheus-operated.monitoring.svc:9090
+    # TriggerAuthentication name for a Prometheus that needs credentials.
+    authenticationRef: ""
+    # PromQL label matchers of this release's series. Empty:
+    # namespace="<release namespace>",service="<fullname>" (the labels a
+    # ServiceMonitor gives them).
+    selector: ""
+    # Only used between 0 and 1 replicas; above that the HPA KEDA creates
+    # reads the metric every HPA sync period (15 s).
+    pollingInterval: 15
+    # Image roles: average per pod of (queue depth / GOMAXPROCS), i.e. jobs
+    # per worker. 0.75 keeps a quarter of the workers free for bursts.
+    queueUtilisationTarget: "0.75"
+    # Video role: average per pod of (cost used + queued) / capacity.
+    videoUtilisationTarget: "0.8"
+    # 429/503 per second per pod that adds replicas.
+    overloadTarget: "1"
+    # Also scale on CPU (targetCPUUtilizationPercentage).
+    cpuTrigger: true
+    # Prometheus unreachable failureThreshold polls in a row: hold replicas.
+    fallback:
+      failureThreshold: 3
+      replicas: 4
+    extraTriggers: []
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+networkPolicy:
+  enabled: true
+  # Who may reach the admin port (Prometheus).
+  metricsFrom:
+    - namespaceSelector:
+        matchLabels: { kubernetes.io/metadata.name: monitoring }
+  # Who may reach the public port; empty allows every source.
+  httpFrom: []
+  egress:
+    enabled: true
+    # Origins and OTLP; the cloud metadata address is always excluded.
+    ports: [80, 443, 4317, 4318]
+    # More rules (in-cluster S3 on 9000, Redis on 6379, ...).
+    extraRules: []
+
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Alert and SLO recording rules (deploy/observability/prometheus/rules.yml).
+# Install them once per namespace, not in every release of a fleet split.
+prometheusRule:
+  enabled: false
+  labels: {}
+
+# Grafana dashboard as a ConfigMap for the Grafana sidecar.
+grafanaDashboard:
+  enabled: false
+  labels:
+    grafana_dashboard: "1"
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: images.example.com
+      # A video release lists /video, /q/video and /_stream here (and the
+      # dialects' video endpoints it serves); an image release keeps "/".
+      paths:
+        - { path: /, pathType: Prefix }
+  tls: []
+
+otel:
+  # OTEL_EXPORTER_OTLP_ENDPOINT (an OTel Collector, http/protobuf on 4318).
+  # Empty: tracing off.
+  endpoint: ""
+  # OTEL_SERVICE_NAME; empty: the release's full name.
+  serviceName: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  # IRSA / Workload Identity for s3 or gcs sources.
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile: { type: RuntimeDefault }
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities: { drop: [ALL] }
+
+tmp:
+  # RAM-backed /tmp (the root file system is read-only).
+  sizeLimit: 64Mi
+
+probes:
+  startup:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 2
+    failureThreshold: 30
+  readiness:
+    httpGet: { path: /readyz, port: http }
+    periodSeconds: 5
+    failureThreshold: 2
+  liveness:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 10
+    failureThreshold: 3
+
+# Soft spread over zones and nodes with this release's selector labels.
+topologySpread:
+  enabled: true
+
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+tests:
+  # helm test: GET /healthz through the Service.
+  image: busybox:1.37

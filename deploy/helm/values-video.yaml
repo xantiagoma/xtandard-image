@@ -1,0 +1,59 @@
+# Video fleet next to values-image.yaml (docs/OPERATIONS.md §2–3):
+#   helm install xi-video deploy/helm/xtandard-image -f deploy/helm/values-video.yaml
+# Same Secret (XI_VIDEO_TRANSFORM_STREAM_KEYS, or the first signing key it is
+# derived from, must match on every pod) and same sources as the image fleet.
+role: video
+image:
+  # full: MP4 = AV1 (LGPL FFmpeg); gpl: MP4 = H.264 (GPL; your patent review).
+  flavor: full
+existingSecret: xtandard-image-secrets
+config:
+  XI_SOURCES: origin
+  XI_SOURCES_ORIGIN_TYPE: http
+  XI_SOURCES_ORIGIN_ALLOW: images.example.com
+  # Results go to disk (below), not the memory tier.
+  XI_CACHE_RESULT_STORES: disk
+video:
+  # The video role does no image work: give the pool every core.
+  workers: "4"
+resources:
+  requests: { cpu: "4", memory: 4Gi, ephemeral-storage: 2Gi }
+  limits: { cpu: "4", memory: 4Gi, ephemeral-storage: 32Gi }
+spool:
+  sizeLimit: 20Gi
+  maxBytes: 16GiB
+resultCache:
+  disk:
+    enabled: true
+    sizeLimit: 10Gi
+    maxBytes: 9GiB
+autoscaling:
+  enabled: true
+  type: keda
+  minReplicas: 1
+  maxReplicas: 6
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - { type: Pods, value: 2, periodSeconds: 30 }
+    scaleDown:
+      # A pod removed mid-transcode wastes the work; scale down slowly.
+      stabilizationWindowSeconds: 600
+      policies:
+        - { type: Pods, value: 1, periodSeconds: 120 }
+serviceMonitor:
+  enabled: true
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: images.example.com
+      # Longest prefix wins: these go to the video fleet, the rest to the
+      # image release's "/". Add the video endpoints of other dialects you use.
+      paths:
+        - { path: /video, pathType: Prefix }
+        - { path: /q/video, pathType: Prefix }
+        - { path: /_stream, pathType: Prefix }
+otel:
+  endpoint: http://otel-collector.monitoring.svc:4318

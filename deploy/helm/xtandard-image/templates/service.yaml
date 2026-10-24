@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "xi.fullname" . }}
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "xi.selectorLabels" . | nindent 4 }}
+  ports:
+    - { name: http, port: {{ .Values.service.port }}, targetPort: http, protocol: TCP }
+    # For Prometheus only; never expose it through an Ingress.
+    - { name: admin, port: {{ .Values.admin.port }}, targetPort: admin, protocol: TCP }

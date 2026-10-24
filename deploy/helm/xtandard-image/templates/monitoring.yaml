@@ -1,0 +1,55 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "xi.fullname" . }}
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "xi.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: admin
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- if .Values.prometheusRule.enabled }}
+---
+# Generated from deploy/observability/prometheus/rules.yml (deploy/scripts/gen.sh).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "xi.fullname" . }}
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- $rules := .Files.Get "files/prometheus-rules.yml" | fromYaml }}
+  {{- toYaml (dict "groups" $rules.groups) | nindent 2 }}
+{{- end }}
+{{- if .Values.grafanaDashboard.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "xi.fullname" . }}-dashboard
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+    {{- with .Values.grafanaDashboard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.grafanaDashboard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  xtandard-image.json: |-
+    {{- .Files.Get "files/xtandard-image-dashboard.json" | nindent 4 }}
+{{- end }}
