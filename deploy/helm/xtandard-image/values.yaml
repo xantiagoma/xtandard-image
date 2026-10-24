@@ -104,16 +104,19 @@ shutdown:
 terminationGracePeriodSeconds: null
 
 # CPU limit = processing workers (GOMAXPROCS); memory limit -> GOMEMLIMIT
-# (30 %). Requests equal limits for CPU so the HPA's percentage means
+# (the server sets 30 %, XI_PROCESSING_GO_MEMORY_FRACTION). Requests equal limits for CPU so the HPA's percentage means
 # workers busy. docs/OPERATIONS.md §2.
 resources:
   requests: { cpu: "2", memory: 1Gi }
   limits: { cpu: "2", memory: 2Gi }
 
-# GOMEMLIMIT for the Go heap. "auto": 30 % of limits.memory (written in Mi
-# or Gi), the share ARCHITECTURE §11 reserves for Go; the rest is libvips,
-# FFmpeg and jemalloc. A value ("600MiB") is used as is; "" sets none.
-goMemLimit: auto
+# GOMEMLIMIT override for the Go heap. "" (the default) sets none: the
+# server derives it at startup from the cgroup memory limit
+# (XI_PROCESSING_GO_MEMORY_FRACTION of it, 30 %; ARCHITECTURE §11), the
+# rest being libvips, FFmpeg and jemalloc. A value ("600MiB") is used as
+# is and wins over the fraction; "auto" writes 30 % of limits.memory
+# (written in Mi or Gi) into the pod spec.
+goMemLimit: ""
 
 autoscaling:
   enabled: true

@@ -22,8 +22,6 @@ services:
       XI_SOURCES_LOCAL_TYPE: fs
       XI_SOURCES_LOCAL_ROOT: /fixtures
       XI_CACHE_RESULT_STORES: memory
-      # 30 % of the 2g limit below (the server does not derive it yet).
-      GOMEMLIMIT: 600MiB
       # Video transformations need the full or gpl image; set it to false
       # with a slim image.
       XI_VIDEO_TRANSFORM_ENABLED: ${XI_VIDEO_TRANSFORM_ENABLED:-true}

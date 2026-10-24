@@ -1,6 +1,6 @@
 # Hardened Deployment (docs/CONFIG.md §6, docs/OPERATIONS.md §1). The worker
-# count follows limits.cpu (GOMAXPROCS) and GOMEMLIMIT is derived from
-# limits.memory, so both limits must be set.
+# count follows limits.cpu (GOMAXPROCS) and the server derives GOMEMLIMIT
+# from limits.memory, so both limits must be set.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
