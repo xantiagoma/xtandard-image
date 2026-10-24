@@ -84,6 +84,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		Strict:               cfg.Dialects.Strict,
 		AllowSecurityOptions: cfg.Security.AllowSecurityOptions,
 		BaseURL:              cfg.Dialects.Imgproxy.BaseURL,
+		AllowedOptions:       cfg.Security.AllowedProcessingOptions,
 	}
 	if ring != nil || len(trusted) > 0 {
 		v, err := sign.NewImgproxyVerifier(sign.ImgproxyOptions{Keys: ring, Size: cfg.Signing.Size, Trusted: trusted, Required: required})
@@ -813,6 +814,7 @@ func serverConfig(cfg *config.Config) server.Config {
 		IdleTimeout:          cfg.Server.IdleTimeout,
 		MaxHeaderBytes:       int(cfg.Server.MaxHeaderBytes),
 		CORSOrigins:          cfg.Server.CORSOrigins,
+		Secret:               string(cfg.Security.Secret),
 		CompatImgproxyStatus: cfg.Compat.ImgproxyStatus,
 		Defaults: transform.Defaults{
 			AutoRotate:        cfg.Processing.AutoRotate,

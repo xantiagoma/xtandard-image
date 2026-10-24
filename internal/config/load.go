@@ -60,6 +60,10 @@ type Meta struct {
 	UnmappedImgproxyEnv []string
 	// Warnings are non-fatal findings to log at startup.
 	Warnings []string
+	// GOMEMLIMIT is the GOMEMLIMIT environment variable ("" when unset).
+	// The Go runtime has already applied it; when it is set, the operator's
+	// limit wins over processing.go_memory_fraction (ARCHITECTURE §11).
+	GOMEMLIMIT string
 }
 
 // Load builds the Config: defaults, then the YAML file, then XI_* variables
@@ -89,6 +93,7 @@ func load(o LoadOptions) (Config, Meta, error) {
 		errList []error
 	)
 	cfg := Defaults()
+	meta.GOMEMLIMIT = goMemLimitEnv(o.Environ)
 
 	static := staticFields()
 	staticKeys := make(map[string]bool, len(static)+3)
@@ -199,6 +204,17 @@ func load(o LoadOptions) (Config, Meta, error) {
 
 	cfg.resolveDerived(o.GOMAXPROCS)
 	return cfg, meta, errors.Join(errList...)
+}
+
+// goMemLimitEnv returns the first GOMEMLIMIT in environ, trimmed: the
+// value the Go runtime read at startup (it, like syscall, takes the first).
+func goMemLimitEnv(environ []string) string {
+	for _, kv := range environ {
+		if val, ok := strings.CutPrefix(kv, "GOMEMLIMIT="); ok {
+			return strings.TrimSpace(val)
+		}
+	}
+	return ""
 }
 
 // imgproxyCompatEnabled reports whether IMGPROXY_* variables are
