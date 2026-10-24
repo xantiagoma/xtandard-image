@@ -1,0 +1,14 @@
+# Image fleet with prometheus-operator monitoring (components/monitoring):
+# ServiceMonitor, PrometheusRule (alerts + SLO recording rules) and the
+# Grafana dashboard as a ConfigMap for the Grafana sidecar.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/role-image
+  - ../../components/monitoring
+
+nameSuffix: -image

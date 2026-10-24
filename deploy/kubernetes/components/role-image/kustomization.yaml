@@ -1,0 +1,15 @@
+# Image fleet: XI_ROLE=image. Video transformations answer 404, so the load
+# balancer sends /video/*, /q/video, the dialects' video endpoints and
+# /_stream/* to the video fleet. Slim image, HPA on CPU from the base.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+labels:
+  - pairs:
+      app.kubernetes.io/component: image
+    includeSelectors: true
+
+patches:
+  - target: { kind: ConfigMap, name: xtandard-image-env }
+    patch: |-
+      - { op: replace, path: /data/XI_ROLE, value: image }

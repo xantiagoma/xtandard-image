@@ -1,0 +1,60 @@
+# Video fleet: XI_ROLE=video (only video transformations and their HLS/DASH
+# parts under /_stream/; everything else answers 404), an image with FFmpeg
+# (full: MP4 is AV1; gpl: MP4 is H.264, GPL licence, your patent review),
+# a disk-backed spool volume and a drain long enough for a transcode.
+# Route /video/*, /q/video, the dialects' video endpoints and /_stream/* here.
+# XI_VIDEO_TRANSFORM_STREAM_KEYS (or the first XI_SIGNING_KEYS key it is
+# derived from) must be the same on every pod: keep it in the shared Secret.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+labels:
+  - pairs:
+      app.kubernetes.io/component: video
+    includeSelectors: true
+
+images:
+  - name: ghcr.io/xantiagoma/xtandard-image
+    newTag: 0.1.0-rc.1-full
+
+patches:
+  - target: { kind: ConfigMap, name: xtandard-image-env }
+    patch: |-
+      - { op: replace, path: /data/XI_ROLE, value: video }
+      - { op: add, path: /data/XI_VIDEO_TRANSFORM_ENABLED, value: "true" }
+      # A dedicated fleet gives the video pool every core (default GOMAXPROCS/4).
+      - { op: add, path: /data/XI_VIDEO_TRANSFORM_WORKERS, value: "4" }
+      - { op: add, path: /data/XI_VIDEO_TRANSFORM_SPOOL_DIR, value: /spool }
+      # 30 % of the 4Gi limit below.
+      - { op: replace, path: /data/GOMEMLIMIT, value: 1228MiB }
+      # Below the emptyDir sizeLimit, so the server answers 503 before the
+      # kubelet evicts the pod.
+      - { op: add, path: /data/XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES, value: 16GiB }
+      # With a result cache, give video results a disk or S3 tier
+      # (XI_CACHE_RESULT_STORES=disk or s3), not the memory tier.
+      # Drain: a transcode may run XI_VIDEO_TRANSFORM_TIMEOUT (2m).
+      - { op: replace, path: /data/XI_SERVER_SHUTDOWN_TIMEOUT, value: 150s }
+  - target: { kind: Deployment, name: xtandard-image }
+    patch: |-
+      - { op: replace, path: /spec/template/spec/terminationGracePeriodSeconds, value: 165 }
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: { cpu: "4", memory: 4Gi, ephemeral-storage: 1Gi }
+          limits: { cpu: "4", memory: 4Gi, ephemeral-storage: 20Gi }
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: { name: spool, mountPath: /spool }
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: spool
+          # Node disk, not memory (no medium: Memory).
+          emptyDir: { sizeLimit: 20Gi }
+  - target: { kind: HorizontalPodAutoscaler, name: xtandard-image }
+    patch: |-
+      - { op: replace, path: /spec/minReplicas, value: 1 }
+      - { op: replace, path: /spec/maxReplicas, value: 6 }
+      # Scale down slower still: a pod that goes away mid-transcode wastes
+      # its work (the client retries from zero).
+      - { op: replace, path: /spec/behavior/scaleDown/stabilizationWindowSeconds, value: 600 }
