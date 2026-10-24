@@ -193,6 +193,8 @@ services:
 
 The image declares a Docker `HEALTHCHECK` (`/healthz`); Prometheus metrics are on the admin listener (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`, set `:9090` to scrape it from another container). Put a CDN in front for caching. Every variable is documented in [docs/CONFIG.md](docs/CONFIG.md), which also has Kubernetes and larger Dokploy/Coolify examples; `XI_COMPAT_IMGPROXY_ENV=true` accepts your existing `IMGPROXY_*` variables.
 
+Other platforms (Docker Swarm, Nomad, Fly.io, Cloud Run, ECS/Fargate, Azure Container Apps, Railway, Render, DigitalOcean) and Terraform/OpenTofu, Pulumi, SST and AWS CDK, each with autoscaling and separate image and video fleets: [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Sources
 
 Sources are the allowlist of origins, and you can configure as many as you need, several of the same type included: AWS S3, Cloudflare R2, Backblaze B2 and a self-hosted RustFS or MinIO side by side, plus GCS, Azure Blob, local directories, FTP/FTPS/SFTP servers and http origins with their own allowlists and headers. For example, in the environment:
@@ -328,6 +330,7 @@ URLs are signed on the server (`POST /_playground/api/sign`), so keys never reac
 - [Sources](docs/SOURCES.md): several S3-compatible stores, GCS, Azure, directories, FTP/SFTP and http origins at once; how a URL picks one; credentials; provider recipes and deployment examples.
 - [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API, where it is published, and the [TypeScript package](clients/typescript/README.md) generated from it.
 - [Operations](docs/OPERATIONS.md): resource use, sizing, autoscaling, a CDN in front, cache tiers, metrics, alerts, SLOs and tracing; the Helm chart, Kustomize manifests and observability files are in [`deploy/`](deploy/).
+- [Deploy](docs/DEPLOY.md): ready-to-use files with autoscaling for Compose, Swarm, Nomad, Dokploy, Coolify, Fly.io, Cloud Run, ECS/Fargate, App Runner, Azure Container Apps, Railway, Render and DigitalOcean, and Terraform/OpenTofu, Pulumi, SST and AWS CDK examples.
 - [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.
