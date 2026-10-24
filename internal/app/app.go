@@ -42,6 +42,9 @@ type Options struct {
 	// Tracing turns OpenTelemetry on (XI_OTEL_ENABLED or an
 	// OTEL_EXPORTER_OTLP_*ENDPOINT; cmd decides from the environment).
 	Tracing bool
+	// GOMEMLIMIT is the operator's GOMEMLIMIT variable (config.Meta); when
+	// set it wins over XI_PROCESSING_GO_MEMORY_FRACTION.
+	GOMEMLIMIT string
 }
 
 // hooks are test seams; the zero value is production behaviour.
@@ -63,7 +66,14 @@ type hooks struct {
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
 // via signal.NotifyContext in main) or a listener fails. See lifecycle.run
 // for the shutdown order. A signal-triggered shutdown returns nil.
+//
+// Run first sets the process-wide Go memory limit from the cgroup limit
+// (applyGoMemoryLimit); run, which tests call, leaves it alone.
 func Run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Options) error {
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+	applyGoMemoryLimit(ctx, logger, cfg, opts.GOMEMLIMIT, memLimitEnv{})
 	return run(ctx, cfg, logger, opts, hooks{})
 }
 
@@ -180,12 +190,13 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		fetchOpts = append(fetchOpts, fetch.WithSpool(fetchSpooler{s: sp}, cfg.Video.Transform.SpoolTTL))
 	}
 	fetcher, err := fetch.New(reg, vipsAllocator, fetch.Config{
-		Timeout:     cfg.Fetch.Timeout,
-		MaxBytes:    fetchMaxBytes(cfg),
-		CacheBytes:  int64(cfg.Cache.Origin.MemoryBytes),
-		CacheTTL:    cfg.Cache.Origin.TTL,
-		NegativeTTL: cfg.Cache.Origin.NegativeTTL,
-		Retry:       cfg.Fetch.Retry,
+		Timeout:       cfg.Fetch.Timeout,
+		MaxBytes:      fetchMaxBytes(cfg),
+		CacheBytes:    int64(cfg.Cache.Origin.MemoryBytes),
+		CacheTTL:      cfg.Cache.Origin.TTL,
+		NegativeTTL:   cfg.Cache.Origin.NegativeTTL,
+		Retry:         cfg.Fetch.Retry,
+		MaxConcurrent: cfg.Fetch.MaxConcurrent,
 	}, fetchOpts...)
 	if err != nil {
 		return err
@@ -275,7 +286,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	dets.classifyMinScore, dets.classifyTopKMax = cfg.Detect.Classify.Threshold, cfg.Detect.Classify.TopKMax
 	proc.detect = dets
 
-	ready := admin.NewReadiness()
+	ready := admin.NewReadinessWithLoad(queueBusy(lim, cfg.Server.ReadyQueueThreshold))
 	scfg := serverConfig(cfg)
 	scfg.ResultCache.Build = opts.Version
 	scfg.Role = serverRole(cfg.Role)
@@ -339,10 +350,11 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	}
 
 	lc := &lifecycle{
-		logger:     logger,
-		ready:      ready,
-		publicAddr: cfg.Server.Addr,
-		adminAddr:  cfg.Admin.Addr,
+		logger:         logger,
+		ready:          ready,
+		publicAddr:     cfg.Server.Addr,
+		adminAddr:      cfg.Admin.Addr,
+		maxConnections: cfg.Server.MaxConnections,
 		public: func(ctx context.Context) *http.Server {
 			hs := srv.HTTPServer(ctx)
 			hs.Handler = withPlayground(hs.Handler, pg.public, pg.publicPath)
@@ -374,6 +386,17 @@ func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin, p
 	})
 }
 
+// queueBusy is /readyz's load check (XI_SERVER_READY_QUEUE_THRESHOLD):
+// busy while the image processing queue (workers + queue places) is at
+// least threshold % full; nil (never busy) when the threshold is 0. Video
+// transformations have their own pool and do not count (CONFIG.md).
+func queueBusy(lim *limiter.Limiter, threshold int) func() bool {
+	if threshold <= 0 {
+		return nil
+	}
+	return func() bool { return lim.QueueFillAtLeast(threshold) }
+}
+
 // closeAll closes every source holding connections or file handles.
 func closeAll(cs []io.Closer) func(context.Context) error {
 	return func(context.Context) error {
@@ -401,6 +424,7 @@ type lifecycle struct {
 	ready           *admin.Readiness
 	publicAddr      string
 	adminAddr       string // "" disables the admin listener
+	maxConnections  int    // open connections on the public listener; 0: unlimited
 	public          func(ctx context.Context) *http.Server
 	admin           func(ctx context.Context) *http.Server
 	shutdownDelay   time.Duration
@@ -422,6 +446,9 @@ func (lc *lifecycle) serveAndDrain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", lc.publicAddr, err)
 	}
+	// XI_SERVER_MAX_CONNECTIONS bounds the public listener only; the admin
+	// listener (metrics, probes, pprof) must stay reachable when it is full.
+	publicLn = server.LimitListener(baseCtx, publicLn, lc.maxConnections)
 	servers := []*http.Server{lc.public(baseCtx)}
 	listeners := []net.Listener{publicLn}
 	var adminAddr net.Addr

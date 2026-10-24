@@ -84,9 +84,10 @@ func serve(ctx context.Context, args []string, environ []string, stdout io.Write
 	info := versionInfo(version, commit, date)
 	getenv := lookup(environ)
 	return app.Run(ctx, &cfg, logger, app.Options{
-		Version: info.Version,
-		Commit:  info.Commit,
-		Tracing: cfg.OTel.Enabled || tracing.EnabledFromEnv(getenv),
+		Version:    info.Version,
+		Commit:     info.Commit,
+		Tracing:    cfg.OTel.Enabled || tracing.EnabledFromEnv(getenv),
+		GOMEMLIMIT: meta.GOMEMLIMIT,
 	})
 }
 
