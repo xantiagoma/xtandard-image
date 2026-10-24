@@ -288,13 +288,13 @@ func operations() []*huma.Operation {
 		{
 			OperationID: "getReadyz", Method: http.MethodGet, Path: "/readyz", Tags: []string{"health"},
 			Summary:     "Readiness",
-			Description: "200 when ready for traffic; 503 while starting or draining (load balancers deregister). Served on both listeners.",
+			Description: "200 when ready for traffic; 503 while starting or draining (load balancers deregister), and busy while the processing queue is at least XI_SERVER_READY_QUEUE_THRESHOLD % full (off by default). Served on both listeners.",
 			Servers: []*huma.Server{
 				{URL: publicServerURL, Description: "Public listener."}, {URL: adminServerURL, Description: "Admin listener."},
 			},
 			Responses: map[string]*huma.Response{
 				"200": {Description: "Ready.", Content: textBody(`^ready\n$`, "ready\n", "The state name.")},
-				"503": {Description: "Starting or draining.", Content: textBody(`^(starting|draining)\n$`, "draining\n", "The state name.")},
+				"503": {Description: "Starting, draining or busy.", Content: textBody(`^(starting|draining|busy)\n$`, "draining\n", "The state name, or busy.")},
 			},
 			Extensions: map[string]any{"x-xi-listener": ListenerBoth},
 		},

@@ -43,12 +43,24 @@ func (s State) String() string {
 // Readiness is the /readyz state, safe for concurrent use. Transitions are
 // Starting → Ready → Draining; Draining is terminal, so a late SetReady
 // during shutdown cannot re-admit traffic.
+//
+// A Readiness built with NewReadinessWithLoad also answers 503 "busy"
+// while Ready and its busy func reports true (XI_SERVER_READY_QUEUE_THRESHOLD):
+// the processing queue is too full to take more traffic. Busy is not a
+// state: it is evaluated on every probe, with no hysteresis.
 type Readiness struct {
 	state atomic.Int32
+	busy  func() bool // nil: never busy; set once at construction
 }
 
 // NewReadiness returns a Readiness in the Starting state.
 func NewReadiness() *Readiness { return &Readiness{} }
+
+// NewReadinessWithLoad returns a Readiness in the Starting state whose
+// /readyz also answers 503 "busy" while busy reports true. busy runs on
+// every probe: it must be cheap and safe for concurrent use. A nil busy is
+// NewReadiness.
+func NewReadinessWithLoad(busy func() bool) *Readiness { return &Readiness{busy: busy} }
 
 // SetReady marks the process ready unless it is already draining. It
 // reports whether the state is Ready afterwards.
@@ -65,10 +77,18 @@ func (r *Readiness) State() State { return State(r.state.Load()) }
 // IsReady reports whether the state is Ready.
 func (r *Readiness) IsReady() bool { return r.State() == Ready }
 
-// ServeHTTP answers /readyz: 200 "ready" when ready, else 503 with the state
-// name. The public listener may mount it too.
+// busyBody is the /readyz body while ready but over the queue threshold.
+const busyBody = "busy"
+
+// ServeHTTP answers /readyz: 200 "ready" when ready, 503 "busy" when ready
+// but over the load threshold, else 503 with the state name. The public
+// listener may mount it too.
 func (r *Readiness) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	s := r.State()
+	if s == Ready && r.busy != nil && r.busy() {
+		writeText(w, http.StatusServiceUnavailable, busyBody)
+		return
+	}
 	writeText(w, statusFor(s), s.String())
 }
 

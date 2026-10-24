@@ -229,3 +229,41 @@ func BenchmarkHealthz(b *testing.B) {
 		})
 	}
 }
+
+// TestReadinessBusy: a Readiness with a load func answers 503 "busy"
+// while ready and busy, and the state's answer otherwise; busy never
+// re-admits a draining process.
+func TestReadinessBusy(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		state    func(*Readiness)
+		busy     bool
+		wantCode int
+		wantBody string
+	}{
+		{"ready idle", func(r *Readiness) { r.SetReady() }, false, http.StatusOK, "ready\n"},
+		{"ready busy", func(r *Readiness) { r.SetReady() }, true, http.StatusServiceUnavailable, "busy\n"},
+		{"starting busy", func(*Readiness) {}, true, http.StatusServiceUnavailable, "starting\n"},
+		{"draining busy", func(r *Readiness) { r.SetReady(); r.SetDraining() }, true, http.StatusServiceUnavailable, "draining\n"},
+		{"draining idle", func(r *Readiness) { r.SetDraining() }, false, http.StatusServiceUnavailable, "draining\n"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := NewReadinessWithLoad(func() bool { return tc.busy })
+			tc.state(r)
+			rec := serve(t, r, http.MethodGet, "/readyz")
+			if rec.Code != tc.wantCode || rec.Body.String() != tc.wantBody {
+				t.Errorf("got %d %q, want %d %q", rec.Code, rec.Body.String(), tc.wantCode, tc.wantBody)
+			}
+			if !tc.busy {
+				return
+			}
+			// The state is unchanged: busy is evaluated per probe.
+			if r.IsReady() != (rec.Body.String() == "busy\n") {
+				t.Errorf("IsReady = %v after a busy probe", r.IsReady())
+			}
+		})
+	}
+}
