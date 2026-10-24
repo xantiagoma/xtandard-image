@@ -1,0 +1,37 @@
+# Deploy tasks (docs/OPERATIONS.md §8), included from the root Taskfile as
+# deploy:*. Tool versions are pinned in deploy/scripts/check.sh and
+# deploy/scripts/kind-autoscale.sh; only Docker (and mise for the kind
+# check) are needed on the host.
+version: "3"
+
+tasks:
+  check:
+    desc: "Static checks of deploy/: generated copies, names, promtool, kustomize/helm through kubeconform, compose config"
+    dir: "{{.ROOT_DIR}}"
+    cmds: [sh deploy/scripts/check.sh]
+
+  gen:
+    desc: "Copy the Prometheus rules and the Grafana dashboard into the Helm chart and the Kustomize monitoring component"
+    dir: "{{.ROOT_DIR}}"
+    cmds: [sh deploy/scripts/gen.sh]
+
+  autoscale:
+    desc: "End-to-end autoscaling check in a throwaway kind cluster (KEDA + Prometheus + the chart + k6); XI_IMAGE picks the image"
+    dir: "{{.ROOT_DIR}}"
+    cmds: [sh deploy/scripts/kind-autoscale.sh]
+
+  stack:up:
+    desc: "Start the local observability stack (server, Prometheus, Grafana :13000, OTel Collector, Tempo); XI_IMAGE picks the image"
+    dir: "{{.ROOT_DIR}}"
+    cmds: [docker compose -f deploy/observability/compose.yml up -d]
+
+  stack:load:
+    desc: "Drive traffic through the local stack with k6 (RATE, DURATION, VIDEO=1)"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - 'docker compose -f deploy/observability/compose.yml --profile load run --rm -e VIDEO="${VIDEO:-0}" k6'
+
+  stack:down:
+    desc: "Stop and remove the local observability stack"
+    dir: "{{.ROOT_DIR}}"
+    cmds: [docker compose -f deploy/observability/compose.yml --profile load down]
