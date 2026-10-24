@@ -1,0 +1,80 @@
+# Google Cloud Run service, image fleet (docs/DEPLOY.md "Google Cloud Run").
+#
+#   printf %s "$(openssl rand -hex 32)" | gcloud secrets create xi-signing-keys --data-file=-
+#   printf %s "$(openssl rand -hex 32)" | gcloud secrets create xi-signing-salts --data-file=-
+#   gcloud run services replace deploy/cloud-run/service.yaml --region us-central1
+#
+# Cloud Run pulls only from Artifact Registry (or Docker Hub): mirror the GHCR image into an
+# Artifact Registry remote repository first; PROJECT and the repository below are placeholders.
+#
+# Scaling: Cloud Run adds instances when in-flight requests approach containerConcurrency and on
+# CPU (target about 60 %), between minScale and maxScale. With the default request-based
+# billing CPU is throttled between requests; "cpu-throttling: false" keeps it allocated
+# (instance-based billing), which the result cache's background writes and stream prefetch need.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: xtandard-image
+  labels:
+    cloud.googleapis.com/location: us-central1
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # 0 = scale to zero (cold start on the first request); 1+ keeps warm instances.
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "20"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      # About 2-4x the worker count (workers = vCPUs). The server's queue answers 429 past
+      # workers + XI_PROCESSING_QUEUE_SIZE, so keep this below that.
+      containerConcurrency: 16
+      timeoutSeconds: 30
+      serviceAccountName: xtandard-image@PROJECT.iam.gserviceaccount.com
+      containers:
+        - name: xtandard-image
+          image: us-docker.pkg.dev/PROJECT/ghcr/xantiagoma/xtandard-image:0.1.0-slim
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: XI_SIGNING_KEYS
+              valueFrom:
+                secretKeyRef: { name: xi-signing-keys, key: latest }
+            - name: XI_SIGNING_SALTS
+              valueFrom:
+                secretKeyRef: { name: xi-signing-salts, key: latest }
+            - { name: XI_SOURCES, value: web }
+            - { name: XI_SOURCES_WEB_TYPE, value: http }
+            - { name: XI_SOURCES_WEB_ALLOW, value: images.example.com }
+            - { name: XI_CACHE_RESULT_STORES, value: memory }
+            # Cloud Run sends SIGTERM and allows 10 s before SIGKILL: shorten the drain.
+            - { name: XI_SERVER_SHUTDOWN_DELAY, value: 1s }
+            - { name: XI_SERVER_SHUTDOWN_TIMEOUT, value: 8s }
+            # The admin listener stays on 127.0.0.1:9090 (default): only a sidecar in the same
+            # instance (OTel Collector or Managed Service for Prometheus) can scrape it.
+          resources:
+            limits: { cpu: "2", memory: 2Gi }
+          startupProbe:
+            httpGet: { path: /readyz, port: 8080 }
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 64Mi }
+  traffic:
+    - latestRevision: true
+      percent: 100

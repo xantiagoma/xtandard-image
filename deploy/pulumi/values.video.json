@@ -1,0 +1,19 @@
+{
+  "role": "video",
+  "image": { "flavor": "full", "tag": "" },
+  "existingSecret": "xi-signing",
+  "config": {
+    "XI_SOURCES": "origin",
+    "XI_SOURCES_ORIGIN_TYPE": "http",
+    "XI_SOURCES_ORIGIN_ALLOW": "media.example.com",
+    "XI_CACHE_RESULT_STORES": "disk"
+  },
+  "video": { "workers": "4" },
+  "resources": {
+    "requests": { "cpu": "4", "memory": "4Gi", "ephemeral-storage": "2Gi" },
+    "limits": { "cpu": "4", "memory": "4Gi", "ephemeral-storage": "32Gi" }
+  },
+  "spool": { "sizeLimit": "20Gi", "maxBytes": "16GiB" },
+  "resultCache": { "disk": { "enabled": true, "sizeLimit": "10Gi", "maxBytes": "9GiB" } },
+  "autoscaling": { "enabled": true, "type": "hpa", "minReplicas": 1, "maxReplicas": 6 }
+}

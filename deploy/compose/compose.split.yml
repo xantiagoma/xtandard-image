@@ -1,0 +1,84 @@
+# xtandard-image as two fleets behind one reverse proxy (docs/DEPLOY.md "Image and video fleets").
+#
+#   docker compose -f deploy/compose/compose.split.yml up -d --scale image=2 --scale video=1
+#
+# - image: XI_ROLE=image, answers 404 to video transformations.
+# - video: XI_ROLE=video, full or gpl image, serves only video transformations and the parts of
+#   their HLS/DASH streams (/_stream/), with a disk-backed spool volume.
+# - proxy: nginx routes /video/, /q/video and /_stream/ to the video fleet and the rest to the
+#   image fleet (deploy/compose/nginx.conf). Docker's DNS returns every replica of a service, and
+#   nginx re-resolves it every 10 s, so `--scale` works without editing the proxy.
+name: xtandard-image-split
+
+x-xi-common: &xi-common
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  stop_grace_period: 40s
+  expose: ["8080"]
+  # Health: the image's own HEALTHCHECK (`xtandard-image health`, GET /healthz every 10s).
+
+x-xi-env: &xi-env
+  XI_ADMIN_ADDR: ":9090"
+  XI_SIGNING_KEYS: ${XI_SIGNING_KEYS:?set XI_SIGNING_KEYS (openssl rand -hex 32)}
+  XI_SIGNING_SALTS: ${XI_SIGNING_SALTS:?set XI_SIGNING_SALTS (openssl rand -hex 32)}
+  XI_SOURCES: web
+  XI_SOURCES_WEB_TYPE: http
+  XI_SOURCES_WEB_ALLOW: ${XI_SOURCES_WEB_ALLOW:-images.example.com}
+
+services:
+  proxy:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    ports:
+      - "${PUBLISH_PORT:-8080}:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    depends_on:
+      image: { condition: service_healthy }
+      video: { condition: service_healthy }
+
+  image:
+    <<: *xi-common
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    environment:
+      <<: *xi-env
+      XI_ROLE: image
+      XI_CACHE_RESULT_STORES: memory
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 2g }
+
+  video:
+    <<: *xi-common
+    image: ${VIDEO_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-full}
+    environment:
+      <<: *xi-env
+      XI_ROLE: video
+      XI_VIDEO_TRANSFORM_ENABLED: "true"
+      # Signed only (the default); restricted serves unsigned URLs only through presets.
+      XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny
+      XI_VIDEO_TRANSFORM_STREAM_KEYS: ${XI_VIDEO_TRANSFORM_STREAM_KEYS:?set XI_VIDEO_TRANSFORM_STREAM_KEYS (openssl rand -hex 32)}
+      # Large sources and outputs spill to disk, not RAM (docs/RELEASE.md "Running read-only").
+      XI_VIDEO_TRANSFORM_SPOOL_DIR: /var/tmp/xtandard-video
+      XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES: 8GiB
+      # Video results are large: keep them out of the memory tier (ARCHITECTURE §11.1).
+      XI_CACHE_RESULT_STORES: disk
+      XI_CACHE_RESULT_DISK_PATH: /var/tmp/xtandard-cache
+      XI_CACHE_RESULT_DISK_BYTES: 2GiB
+    volumes:
+      # One anonymous, disk-backed volume per replica (never share a spool or disk cache between
+      # processes). Docker copies the image's /var/tmp mode (1777) into the new volume, so UID
+      # 65532 can write there without an init container. `docker compose down -v` removes it.
+      - /var/tmp
+    deploy:
+      resources:
+        limits: { cpus: "4", memory: 4g }

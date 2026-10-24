@@ -1,0 +1,102 @@
+# DigitalOcean App Platform app spec (docs/DEPLOY.md "DigitalOcean App Platform").
+#
+#   doctl apps create --spec deploy/digitalocean/app.yaml
+#
+# Two components: the image fleet and the video fleet, with App Platform's ingress routing
+# /video, /q/video and /_stream to the video one. CPU autoscaling needs dedicated-CPU instance
+# sizes (apps-d-*); request-based metrics (requests_per_second, request_duration) are also
+# accepted by the spec. Do not set instance_count when autoscaling is set.
+name: xtandard-image
+region: nyc
+services:
+  - name: image
+    image:
+      registry_type: GHCR
+      registry: xantiagoma
+      repository: xtandard-image
+      tag: 0.1.0-slim
+      # Private package: a GHCR token with read:packages, as "username:token".
+      registry_credentials: "xantiagoma:replace-with-token"
+    instance_size_slug: apps-d-2vcpu-4gb
+    http_port: 8080
+    # The admin listener (XI_ADMIN_ADDR=:9090) is reachable only inside the app.
+    internal_ports: [9090]
+    autoscaling:
+      min_instance_count: 2
+      max_instance_count: 10
+      metrics:
+        cpu:
+          percent: 60
+    health_check:
+      http_path: /readyz
+      port: 8080
+      initial_delay_seconds: 5
+      period_seconds: 5
+      timeout_seconds: 2
+      failure_threshold: 3
+    liveness_health_check:
+      http_path: /healthz
+      port: 8080
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 3
+      failure_threshold: 3
+    termination:
+      # Draining (no new requests) then SIGTERM; then up to grace_period_seconds to exit.
+      drain_seconds: 5
+      grace_period_seconds: 40
+    envs:
+      - { key: XI_SIGNING_KEYS, scope: RUN_TIME, type: SECRET, value: replace-with-hex }
+      - { key: XI_SIGNING_SALTS, scope: RUN_TIME, type: SECRET, value: replace-with-hex }
+      - { key: XI_ADMIN_ADDR, scope: RUN_TIME, value: ":9090" }
+      - { key: XI_SOURCES, scope: RUN_TIME, value: web }
+      - { key: XI_SOURCES_WEB_TYPE, scope: RUN_TIME, value: http }
+      - { key: XI_SOURCES_WEB_ALLOW, scope: RUN_TIME, value: images.example.com }
+      - { key: XI_CACHE_RESULT_STORES, scope: RUN_TIME, value: memory }
+      - { key: XI_ROLE, scope: RUN_TIME, value: image }
+
+  - name: video
+    image:
+      registry_type: GHCR
+      registry: xantiagoma
+      repository: xtandard-image
+      tag: 0.1.0-full
+      registry_credentials: "xantiagoma:replace-with-token"
+    instance_size_slug: apps-d-4vcpu-16gb
+    http_port: 8080
+    autoscaling:
+      min_instance_count: 1
+      max_instance_count: 4
+      metrics:
+        cpu:
+          percent: 70
+    health_check:
+      http_path: /readyz
+      port: 8080
+      period_seconds: 5
+    termination:
+      drain_seconds: 5
+      grace_period_seconds: 150
+    envs:
+      - { key: XI_SIGNING_KEYS, scope: RUN_TIME, type: SECRET, value: replace-with-hex }
+      - { key: XI_SIGNING_SALTS, scope: RUN_TIME, type: SECRET, value: replace-with-hex }
+      - { key: XI_VIDEO_TRANSFORM_STREAM_KEYS, scope: RUN_TIME, type: SECRET, value: replace-with-hex }
+      - { key: XI_ROLE, scope: RUN_TIME, value: video }
+      - { key: XI_VIDEO_TRANSFORM_ENABLED, scope: RUN_TIME, value: "true" }
+      - { key: XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES, scope: RUN_TIME, value: 4GiB }
+      - { key: XI_SERVER_SHUTDOWN_TIMEOUT, scope: RUN_TIME, value: 130s }
+      - { key: XI_SOURCES, scope: RUN_TIME, value: web }
+      - { key: XI_SOURCES_WEB_TYPE, scope: RUN_TIME, value: http }
+      - { key: XI_SOURCES_WEB_ALLOW, scope: RUN_TIME, value: media.example.com }
+
+ingress:
+  rules:
+    # preserve_path_prefix keeps /video/… intact (App Platform strips the prefix by default).
+    - match: { path: { prefix: /video/ } }
+      component: { name: video, preserve_path_prefix: true }
+    - match: { path: { prefix: /q/video } }
+      component: { name: video, preserve_path_prefix: true }
+    - match: { path: { prefix: /_stream/ } }
+      component: { name: video, preserve_path_prefix: true }
+    - match: { path: { prefix: / } }
+      component: { name: image }

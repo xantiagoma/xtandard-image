@@ -1,0 +1,57 @@
+{
+  "family": "xtandard-image",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "runtimePlatform": { "cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX" },
+  "executionRoleArn": "arn:aws:iam::123456789012:role/xtandard-image-execution",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/xtandard-image-task",
+  "containerDefinitions": [
+    {
+      "name": "xtandard-image",
+      "image": "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim",
+      "repositoryCredentials": {
+        "credentialsParameter": "arn:aws:secretsmanager:us-east-1:123456789012:secret:ghcr-pull"
+      },
+      "essential": true,
+      "readonlyRootFilesystem": true,
+      "user": "65532:65532",
+      "portMappings": [{ "name": "http", "containerPort": 8080, "protocol": "tcp", "appProtocol": "http" }],
+      "environment": [
+        { "name": "XI_SOURCES", "value": "web" },
+        { "name": "XI_SOURCES_WEB_TYPE", "value": "http" },
+        { "name": "XI_SOURCES_WEB_ALLOW", "value": "images.example.com" },
+        { "name": "XI_CACHE_RESULT_STORES", "value": "memory" },
+        { "name": "XI_SERVER_SHUTDOWN_DELAY", "value": "5s" },
+        { "name": "XI_SERVER_SHUTDOWN_TIMEOUT", "value": "30s" }
+      ],
+      "secrets": [
+        { "name": "XI_SIGNING_KEYS", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:xi-signing-keys" },
+        { "name": "XI_SIGNING_SALTS", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:xi-signing-salts" }
+      ],
+      "mountPoints": [{ "sourceVolume": "tmp", "containerPath": "/tmp", "readOnly": false }],
+      "healthCheck": {
+        "command": ["CMD", "/usr/local/bin/xtandard-image", "health"],
+        "interval": 10,
+        "timeout": 3,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "stopTimeout": 40,
+      "ulimits": [{ "name": "nofile", "softLimit": 65536, "hardLimit": 65536 }],
+      "linuxParameters": { "capabilities": { "drop": ["ALL"] }, "initProcessEnabled": true },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/xtandard-image",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "xi",
+          "awslogs-create-group": "true"
+        }
+      }
+    }
+  ],
+  "volumes": [{ "name": "tmp" }],
+  "ephemeralStorage": { "sizeInGiB": 21 }
+}

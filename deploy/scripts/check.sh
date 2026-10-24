@@ -105,7 +105,8 @@ check_names() {
     done
   done
   echo "== XI_* variable names"
-  for f in $(find deploy -type f \( -name '*.yaml' -o -name '*.yml' -o -name '*.tpl' -o -name '*.json' \)) docs/OPERATIONS.md; do
+  # node_modules, .sst and .cache hold the WP-149 tooling's installed packages and downloads.
+  for f in $(find deploy \( -name node_modules -o -name .sst -o -name .cache \) -prune -o -type f \( -name '*.yaml' -o -name '*.yml' -o -name '*.tpl' -o -name '*.json' \) -print) docs/OPERATIONS.md; do
     for v in $(grep -oE 'XI_[A-Z0-9_]*[A-Z0-9]' "$f" | sort -u); do
       case "$v" in
         XI_IMAGE | XI_CLIENTS_WORKFLOW | XI_DEPLOY_WORKFLOW | XI_XTANDARD_IMAGE_SERVICE_HOST) continue ;; # tooling variables; an injected service-link name (OPERATIONS §7)

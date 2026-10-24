@@ -1,0 +1,45 @@
+{
+  "ServiceName": "xtandard-image",
+  "SourceConfiguration": {
+    "AutoDeploymentsEnabled": false,
+    "ImageRepository": {
+      "ImageIdentifier": "123456789012.dkr.ecr.us-east-1.amazonaws.com/xtandard-image:0.1.0-slim",
+      "ImageRepositoryType": "ECR",
+      "ImageConfiguration": {
+        "Port": "8080",
+        "RuntimeEnvironmentVariables": {
+          "XI_SOURCES": "web",
+          "XI_SOURCES_WEB_TYPE": "http",
+          "XI_SOURCES_WEB_ALLOW": "images.example.com",
+          "XI_CACHE_RESULT_STORES": "memory"
+        },
+        "RuntimeEnvironmentSecrets": {
+          "XI_SIGNING_KEYS": "arn:aws:secretsmanager:us-east-1:123456789012:secret:xi-signing-keys",
+          "XI_SIGNING_SALTS": "arn:aws:secretsmanager:us-east-1:123456789012:secret:xi-signing-salts"
+        }
+      }
+    },
+    "AuthenticationConfiguration": {
+      "AccessRoleArn": "arn:aws:iam::123456789012:role/xtandard-image-apprunner-ecr"
+    }
+  },
+  "InstanceConfiguration": {
+    "Cpu": "2 vCPU",
+    "Memory": "4 GB",
+    "InstanceRoleArn": "arn:aws:iam::123456789012:role/xtandard-image-task"
+  },
+  "HealthCheckConfiguration": {
+    "Protocol": "HTTP",
+    "Path": "/readyz",
+    "Interval": 5,
+    "Timeout": 2,
+    "HealthyThreshold": 1,
+    "UnhealthyThreshold": 3
+  },
+  "AutoScalingConfigurationArn": "arn:aws:apprunner:us-east-1:123456789012:autoscalingconfiguration/xtandard-image/1/0123456789abcdef0123456789abcdef",
+  "NetworkConfiguration": {
+    "EgressConfiguration": { "EgressType": "DEFAULT" },
+    "IngressConfiguration": { "IsPubliclyAccessible": true }
+  },
+  "ObservabilityConfiguration": { "ObservabilityEnabled": false }
+}

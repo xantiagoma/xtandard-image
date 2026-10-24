@@ -1,0 +1,12 @@
+# Local smoke-run override for deploy/compose/compose.split.yml (deploy/check/compose-run.sh):
+# adds the repository fixtures as an fs source so no network origin is needed.
+services:
+  image:
+    volumes: ["../../testdata/fixtures:/fixtures:ro"]
+    environment: &local
+      XI_SOURCES: web,local
+      XI_SOURCES_LOCAL_TYPE: fs
+      XI_SOURCES_LOCAL_ROOT: /fixtures
+  video:
+    volumes: ["../../testdata/fixtures:/fixtures:ro"]
+    environment: *local

@@ -1,0 +1,84 @@
+# Azure Container Apps, image fleet (docs/DEPLOY.md "Azure Container Apps").
+#
+#   az containerapp create -g my-rg -n xtandard-image --yaml deploy/azure-container-apps/containerapp.yaml
+#
+# Replace the subscription, resource group, environment and secret values (placeholders). Store
+# real secrets in Key Vault and reference them (keyVaultUrl + identity) instead of `value`.
+#
+# Scaling is KEDA under the hood: the http rule adds a replica per `concurrentRequests` in flight
+# (measured every 15 s), up to maxReplicas; scale-in waits for a 300 s stabilization window.
+location: eastus
+name: xtandard-image
+type: Microsoft.App/containerApps
+properties:
+  environmentId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.App/managedEnvironments/my-env
+  workloadProfileName: Consumption
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8080
+      transport: auto
+      allowInsecure: false
+    registries:
+      - server: ghcr.io
+        username: xantiagoma
+        passwordSecretRef: ghcr-token
+    secrets:
+      - name: ghcr-token
+        value: replace-with-a-read-packages-token
+      - name: xi-signing-keys
+        value: replace-with-hex
+      - name: xi-signing-salts
+        value: replace-with-hex
+  template:
+    # SIGTERM → /readyz 503 → 5 s → drain up to 30 s (default grace period is 30 s).
+    terminationGracePeriodSeconds: 40
+    containers:
+      - name: xtandard-image
+        image: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
+        resources:
+          # Consumption profile pairs: 0.25 vCPU / 0.5 Gi steps up to 4 vCPU / 8 Gi.
+          cpu: 2
+          memory: 4Gi
+        env:
+          - { name: XI_SIGNING_KEYS, secretRef: xi-signing-keys }
+          - { name: XI_SIGNING_SALTS, secretRef: xi-signing-salts }
+          - { name: XI_SOURCES, value: web }
+          - { name: XI_SOURCES_WEB_TYPE, value: http }
+          - { name: XI_SOURCES_WEB_ALLOW, value: images.example.com }
+          - { name: XI_CACHE_RESULT_STORES, value: memory }
+        probes:
+          - type: Startup
+            httpGet: { path: /readyz, port: 8080 }
+            periodSeconds: 1
+            failureThreshold: 30
+          - type: Readiness
+            httpGet: { path: /readyz, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 2
+          - type: Liveness
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 10
+            failureThreshold: 3
+        volumeMounts:
+          - { volumeName: tmp, mountPath: /tmp }
+    volumes:
+      # EmptyDir is replica-scoped ephemeral storage on disk.
+      - { name: tmp, storageType: EmptyDir }
+    scale:
+      # 0 allows scale to zero (cold start on the next request).
+      minReplicas: 1
+      maxReplicas: 20
+      rules:
+        - name: http-concurrency
+          http:
+            metadata:
+              # About 2x the worker count (2 vCPU → 2 workers): in-flight requests per replica.
+              concurrentRequests: "8"
+        - name: cpu
+          custom:
+            type: cpu
+            metadata:
+              type: Utilization
+              value: "65"

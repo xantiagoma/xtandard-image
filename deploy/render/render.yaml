@@ -1,0 +1,85 @@
+# Render Blueprint (docs/DEPLOY.md "Render"). New → Blueprint → this repository and path.
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+#
+# Autoscaling (Professional workspace or higher) keeps CPU and memory near the targets between
+# minInstances and maxInstances; Render does not scale to zero (minInstances ≥ 1). A service
+# with a persistent disk cannot scale, so the video service uses no disk (spool in /tmp).
+services:
+  - type: web
+    name: xtandard-image
+    runtime: image
+    image:
+      url: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
+      # Private GHCR package: create a registry credential named "ghcr" in the dashboard.
+      creds:
+        fromRegistryCreds:
+          name: ghcr
+    region: oregon
+    # 2 CPU / 4 GB: workers follow the CPU count.
+    plan: 2c-4g
+    healthCheckPath: /readyz
+    # SIGTERM → /readyz 503 → 5 s → drain up to 30 s.
+    maxShutdownDelaySeconds: 40
+    scaling:
+      minInstances: 2
+      maxInstances: 10
+      targetCPUPercent: 60
+      targetMemoryPercent: 80
+    envVars:
+      # Prompted for at Blueprint creation; never committed.
+      - key: XI_SIGNING_KEYS
+        sync: false
+      - key: XI_SIGNING_SALTS
+        sync: false
+      - key: XI_SOURCES
+        value: web
+      - key: XI_SOURCES_WEB_TYPE
+        value: http
+      - key: XI_SOURCES_WEB_ALLOW
+        value: images.example.com
+      - key: XI_CACHE_RESULT_STORES
+        value: memory
+      # Render routes to the PORT variable's port; the server listens on XI_SERVER_ADDR.
+      - key: PORT
+        value: "8080"
+
+  # Video fleet (route /video/, /q/video and /_stream/ to it from your CDN); full image.
+  - type: web
+    name: xtandard-video
+    runtime: image
+    image:
+      url: ghcr.io/xantiagoma/xtandard-image:0.1.0-full
+      creds:
+        fromRegistryCreds:
+          name: ghcr
+    region: oregon
+    plan: 4c-16g
+    healthCheckPath: /readyz
+    maxShutdownDelaySeconds: 150
+    scaling:
+      minInstances: 1
+      maxInstances: 4
+      targetCPUPercent: 70
+    envVars:
+      - key: XI_SIGNING_KEYS
+        sync: false
+      - key: XI_SIGNING_SALTS
+        sync: false
+      - key: XI_VIDEO_TRANSFORM_STREAM_KEYS
+        sync: false
+      - key: XI_ROLE
+        value: video
+      - key: XI_VIDEO_TRANSFORM_ENABLED
+        value: "true"
+      - key: XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES
+        value: 4GiB
+      - key: XI_SERVER_SHUTDOWN_TIMEOUT
+        value: 130s
+      - key: XI_SOURCES
+        value: web
+      - key: XI_SOURCES_WEB_TYPE
+        value: http
+      - key: XI_SOURCES_WEB_ALLOW
+        value: media.example.com
+      - key: PORT
+        value: "8080"
