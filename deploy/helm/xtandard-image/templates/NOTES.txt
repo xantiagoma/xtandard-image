@@ -1,0 +1,17 @@
+xtandard-image {{ include "xi.imageTag" . }} (role {{ .Values.role }}) is installed as {{ include "xi.fullname" . }}.
+
+Public port:  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "xi.fullname" . }} 8080:{{ .Values.service.port }}
+Metrics:      kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "xi.fullname" . }} 9090:{{ .Values.admin.port }}   then /metrics
+{{- if not .Values.existingSecret }}
+
+No existingSecret: the server runs without signing keys (unsigned URLs follow
+XI_SECURITY_UNSIGNED_POLICY, default restricted). Create a Secret with
+XI_SIGNING_KEYS / XI_SIGNING_SALTS and set existingSecret.
+{{- end }}
+{{- if eq .Values.role "image" }}
+
+Role image: video transformations answer 404 here; route /video/*, /q/video and
+/_stream/* to a release with role video.
+{{- end }}
+
+Sizing, autoscaling, CDN and observability: docs/OPERATIONS.md.

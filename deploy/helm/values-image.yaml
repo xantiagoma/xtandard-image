@@ -1,0 +1,35 @@
+# Image fleet (docs/OPERATIONS.md §2–3):
+#   helm install xi-image deploy/helm/xtandard-image -f deploy/helm/values-image.yaml
+role: image
+image:
+  flavor: slim
+existingSecret: xtandard-image-secrets
+config:
+  XI_SOURCES: origin
+  XI_SOURCES_ORIGIN_TYPE: http
+  XI_SOURCES_ORIGIN_ALLOW: images.example.com
+  XI_CACHE_RESULT_STORES: memory
+  XI_CACHE_RESULT_MEMORY_BYTES: 256MiB
+resources:
+  requests: { cpu: "2", memory: 1Gi }
+  limits: { cpu: "2", memory: 2Gi }
+autoscaling:
+  enabled: true
+  type: keda
+  minReplicas: 2
+  maxReplicas: 20
+serviceMonitor:
+  enabled: true
+prometheusRule:
+  enabled: true
+grafanaDashboard:
+  enabled: true
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: images.example.com
+      paths:
+        - { path: /, pathType: Prefix }
+otel:
+  endpoint: http://otel-collector.monitoring.svc:4318

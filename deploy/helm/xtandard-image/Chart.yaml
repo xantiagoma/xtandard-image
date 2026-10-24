@@ -1,0 +1,19 @@
+apiVersion: v2
+name: xtandard-image
+description: Self-hosted image (and video) processing proxy with imgproxy, Cloudinary, imgix and other URL dialects
+type: application
+# Chart version (SemVer); bump on every chart change.
+version: 0.1.0
+# Default image tag prefix: <appVersion>-<flavor> (docs/RELEASE.md tags).
+appVersion: "0.1.0-rc.1"
+kubeVersion: ">=1.27.0-0"
+home: https://github.com/xantiagoma/xtandard-image
+sources:
+  - https://github.com/xantiagoma/xtandard-image
+keywords: [image, imgproxy, resize, thumbnail, libvips, video, cdn]
+maintainers:
+  - name: Santiago Montoya
+    url: https://github.com/xantiagoma
+annotations:
+  # Operator guide: sizing, autoscaling, CDN, observability.
+  docs: https://github.com/xantiagoma/xtandard-image/blob/main/docs/OPERATIONS.md
