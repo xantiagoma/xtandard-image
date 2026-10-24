@@ -392,6 +392,15 @@ func (l *Limiter) Stats() Stats {
 	}
 }
 
+// QueueFillAtLeast reports whether jobs hold at least percent % of the
+// queue semaphore (Workers + QueueSize places): admitted jobs plus those
+// waiting for a worker or memory. It is two atomic loads and no lock, for
+// /readyz (XI_SERVER_READY_QUEUE_THRESHOLD). percent ≤ 0 is always true.
+func (l *Limiter) QueueFillAtLeast(percent int) bool {
+	held := l.waiting.Load() + l.inFlight.Load()
+	return held*100 >= int64(percent)*(int64(l.cfg.Workers)+int64(l.cfg.QueueSize))
+}
+
 // observeHold folds d into the hold-time EWMA (alpha 1/8).
 func (l *Limiter) observeHold(d time.Duration) {
 	sample := max(int64(d), 1)
