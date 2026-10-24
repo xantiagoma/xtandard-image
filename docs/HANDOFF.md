@@ -374,3 +374,9 @@ owner has authorised merging PRs without review.
   Cloud Run/ECS/App Runner/Container Apps/Railway/Render/DO, Terraform/OpenTofu, Pulumi, SST, CDK),
   parallel; WP-149 consumes the chart at `deploy/helm/xtandard-image` (reconcile value names at merge).
   Merge WP-148 first. Backlog: standalone Linux tarballs (ROADMAP "Backlog after M4").
+
+- **Merged 2026-10-23: M7** WP-148 (#155: OPERATIONS.md, Kustomize, Helm chart, KEDA/HPA, dashboard,
+  rules, OTel stack; kind autoscale 1→5→1) and WP-149 (#156: DEPLOY.md, every platform file, Terraform/
+  OpenTofu, Pulumi, SST, CDK; `task deploy:check`, `deploy:platforms:check`, `deploy:platforms:run`).
+  Workflow `deploy.yml` gated by `XI_DEPLOY_WORKFLOW=enabled`. **In flight:** WP-150 (`m7/wp-150-config-apply`):
+  GOMEMLIMIT fraction, ready queue threshold and max connections were validated but never applied.
