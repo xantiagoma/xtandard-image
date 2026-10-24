@@ -602,6 +602,8 @@ observability:
 
 The file is decoded with `goccy/go-yaml` in strict mode (unknown fields and duplicate keys rejected, one document only); environment variables are then applied on top with `caarlos0/env/v11`. This example is loaded by a test, so it stays valid. The same example in JSON and TOML is `internal/config/testdata/schema/valid/example.{json,toml}`; a test loads all three to the same `Config` and validates them against the schema. No interpolation syntax: put secrets in env or `_FILE` variables or `{file: …}` references, and keep the file itself non-secret so it can live in a ConfigMap.
 
+Sections 4 to 6 are short starting points. Recipes for every platform (Compose, Swarm, Dokploy, Coolify, Fly.io, Cloud Run, ECS, Azure Container Apps and infrastructure as code) are in [DEPLOY.md](DEPLOY.md); sizing, autoscaling, the CDN in front, cache tiers and observability are in [OPERATIONS.md](OPERATIONS.md).
+
 ## 4. Dokploy
 
 Create an **Application** → Docker image `ghcr.io/xantiagoma/xtandard-image:slim`, port 8080, domain via Traefik, and set environment:
@@ -615,7 +617,7 @@ XI_SOURCES_ORIGIN_ALLOW=cdn.example.com
 XI_PROCESSING_MEMORY_BUDGET=1GiB
 ```
 
-Health check path `/healthz` (the image also declares a Docker `HEALTHCHECK`). Scale replicas freely: the service is stateless; put a CDN in front for caching. An environment with several sources (S3, R2, B2, RustFS, SFTP, http) is [`docs/examples/multi-source.env`](examples/multi-source.env) ([SOURCES.md §5.1](SOURCES.md#51-environment-variables-only-dokploy-coolify-docker-run)).
+Health check path `/healthz` (the image also declares a Docker `HEALTHCHECK`). Scale replicas freely: the service is stateless; put a CDN in front for caching ([OPERATIONS.md §4](OPERATIONS.md#4-a-cdn-in-front)). An environment with several sources (S3, R2, B2, RustFS, SFTP, http) is [`docs/examples/multi-source.env`](examples/multi-source.env) ([SOURCES.md §5.1](SOURCES.md#51-environment-variables-only-dokploy-coolify-docker-run)).
 
 ## 5. Coolify (docker-compose)
 
@@ -701,4 +703,6 @@ spec:
     #   pods: { metric: { name: xi_queue_depth }, target: { type: AverageValue, averageValue: "4" } }
 ```
 
-Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS) and `GOMEMLIMIT` is derived from the memory limit. A deployment that runs video transformations (`XI_ROLE=video` or `all` with `XI_VIDEO_TRANSFORM_ENABLED`) also needs a disk-backed volume for its spool files (an `emptyDir` without `medium: Memory`, with a `sizeLimit` above `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`) at `XI_VIDEO_TRANSFORM_SPOOL_DIR`: [RELEASE.md "Running read-only"](RELEASE.md#running-read-only). A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
+Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS), and `GOMEMLIMIT` should be about 30 % of the memory limit (set it explicitly for now: [OPERATIONS.md §1.3](OPERATIONS.md#13-memory)). A deployment that runs video transformations (`XI_ROLE=video` or `all` with `XI_VIDEO_TRANSFORM_ENABLED`) also needs a disk-backed volume for its spool files (an `emptyDir` without `medium: Memory`, with a `sizeLimit` above `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`) at `XI_VIDEO_TRANSFORM_SPOOL_DIR`: [RELEASE.md "Running read-only"](RELEASE.md#running-read-only). A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
+
+The complete manifests are [`deploy/kubernetes/`](../deploy/kubernetes/) (Kustomize: base and `image`, `video`, `keda`, `monitoring` overlays) and the Helm chart [`deploy/helm/xtandard-image/`](../deploy/helm/xtandard-image/) (image and video fleets, HPA or KEDA, ServiceMonitor, PrometheusRule, Grafana dashboard). Autoscaling on the queue instead of CPU, drain timing and monitoring: [OPERATIONS.md §3](OPERATIONS.md#3-autoscaling) and [§6](OPERATIONS.md#6-observability).

@@ -327,6 +327,7 @@ URLs are signed on the server (`POST /_playground/api/sign`), so keys never reac
 - [Configuration](docs/CONFIG.md): environment variables, the YAML/JSON/TOML config file and its JSON Schema, and Dokploy, Coolify and Kubernetes examples.
 - [Sources](docs/SOURCES.md): several S3-compatible stores, GCS, Azure, directories, FTP/SFTP and http origins at once; how a URL picks one; credentials; provider recipes and deployment examples.
 - [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API, where it is published, and the [TypeScript package](clients/typescript/README.md) generated from it.
+- [Operations](docs/OPERATIONS.md): resource use, sizing, autoscaling, a CDN in front, cache tiers, metrics, alerts, SLOs and tracing; the Helm chart, Kustomize manifests and observability files are in [`deploy/`](deploy/).
 - [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.
