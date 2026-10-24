@@ -148,7 +148,7 @@ func imgproxyVars() []imgproxyVar {
 		{"IMGPROXY_KEEP_COPYRIGHT", ts("XI_PROCESSING_KEEP_COPYRIGHT"), "Same", direct},
 		{"IMGPROXY_STRIP_COLOR_PROFILE", ts("XI_PROCESSING_STRIP_COLOR_PROFILE"), "Same", direct},
 		{"IMGPROXY_PRESERVE_HDR", ts("XI_PROCESSING_PRESERVE_HDR"), "Same", direct},
-		{"IMGPROXY_USE_LINEAR_COLORSPACE", ts("XI_PROCESSING_LINEAR_RESIZE"), "Same", direct},
+		{"IMGPROXY_USE_LINEAR_COLORSPACE", ts("XI_PROCESSING_LINEAR_RESIZE"), "Translated, but not implemented yet (see the variable)", direct},
 		{"IMGPROXY_WATERMARK_OPACITY", ts("XI_PROCESSING_WATERMARK_OPACITY"), "Same", direct},
 		{"IMGPROXY_WATERMARK_PATH", ts("XI_PROCESSING_WATERMARK_SOURCE"), "Translated to `local:///<path>` when the path lies under `IMGPROXY_LOCAL_FILESYSTEM_ROOT`; otherwise a startup warning (set a source string yourself). Wins over `IMGPROXY_WATERMARK_URL`", localPath},
 		{"IMGPROXY_WATERMARK_URL", ts("XI_PROCESSING_WATERMARK_SOURCE"), "Same URL, resolved against the sources like any source string", direct},

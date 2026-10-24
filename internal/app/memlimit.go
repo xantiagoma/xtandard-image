@@ -162,7 +162,7 @@ func applyGoMemoryLimit(ctx context.Context, logger *slog.Logger, cfg *config.Co
 	if goMemLimit != "" {
 		current := setLimit(-1)
 		logger.LogAttrs(ctx, slog.LevelInfo, "go memory limit from GOMEMLIMIT",
-			slog.String("gomemlimit", goMemLimit), slog.Int64("go_memory_limit_bytes", current))
+			slog.String("gomemlimit", goMemLimit), slog.Int64("gomemlimit_bytes", current))
 		return current
 	}
 	fsys := env.fsys
@@ -183,13 +183,13 @@ func applyGoMemoryLimit(ctx context.Context, logger *slog.Logger, cfg *config.Co
 	goLimit := int64(math.Floor(fraction * float64(lim.bytes)))
 	setLimit(goLimit)
 	logger.LogAttrs(ctx, slog.LevelInfo, "go memory limit set",
-		slog.Int64("go_memory_limit_bytes", goLimit), slog.Int64("cgroup_memory_limit_bytes", lim.bytes),
-		slog.Float64("go_memory_fraction", fraction), slog.String("cgroup", lim.version))
+		slog.Int64("gomemlimit_bytes", goLimit), slog.Int64("cgroup_memory_limit_bytes", lim.bytes),
+		slog.Float64("memory_fraction", fraction), slog.String("cgroup", lim.version))
 	// The memory budget bounds libvips' decoded pixels (C memory); with
 	// the Go share it should leave room inside the cgroup limit.
 	if budget := int64(cfg.Processing.MemoryBudget); budget > 0 && goLimit+budget > lim.bytes {
 		logger.LogAttrs(ctx, slog.LevelWarn, "go memory limit and memory budget exceed the cgroup memory limit",
-			slog.Int64("go_memory_limit_bytes", goLimit), slog.Int64("memory_budget_bytes", budget),
+			slog.Int64("gomemlimit_bytes", goLimit), slog.Int64("memory_budget_bytes", budget),
 			slog.Int64("cgroup_memory_limit_bytes", lim.bytes))
 	}
 	return goLimit
