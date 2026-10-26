@@ -8,9 +8,12 @@
 //     > internal/dialect/imgix/testdata/jscore/corpus.json
 //
 // IMGIX_JS_CORE points at a checkout of imgix/js-core (default: the .refs
-// clone next to the main checkout, scripts/clone-refs.sh).
+// clone in the main checkout or $XI_REFS, scripts/clone-refs.sh).
 
-const root = process.env.IMGIX_JS_CORE ?? "/Users/santi/Projects/xtandard-image/.refs/imgix-js-core";
+import { $ } from "bun";
+
+const refs = process.env.XI_REFS ?? `${(await $`git rev-parse --path-format=absolute --git-common-dir`.text()).trim()}/../.refs`;
+const root = process.env.IMGIX_JS_CORE ?? `${refs}/imgix-js-core`;
 const { default: ImgixClient } = await import(`${root}/src/index.js`);
 
 const client = new ImgixClient({ domain: "assets.imgix.net", secureURLToken: "FOO123bar" });
