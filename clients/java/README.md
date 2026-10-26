@@ -2,20 +2,24 @@
 
 # xtandard-image for Java
 
-The official Java client of [xtandard-image](https://github.com/xantiagoma/xtandard-image) ([ADR 0013](../../docs/adr/0013-official-clients.md)). It has:
+**Typed URL builder, signing and `java.net.http` client for the xtandard-image server.**
 
-- typed URL builders for the imgproxy dialect (processing, `/info`, `/video`, HLS and DASH) and the query dialect (`/q/`, `/q/video`, imaginary endpoints), in an object form and a fluent form;
-- imgproxy and `xi_sig` signing;
-- `enc/` source and PDF password encryption;
-- an HTTP client on `java.net.http.HttpClient`, synchronous and asynchronous (`CompletableFuture`).
+[![Maven Central: pending](https://img.shields.io/badge/Maven%20Central-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-It needs Java 17 or later. It is a JPMS module (`io.github.xantiagoma.xtandard.image`) with **no runtime dependencies**: `javax.crypto` for HMAC and AES, `java.net.http` for HTTP, and a small internal JSON parser for `/info` answers. Everything is `@NullMarked` with [JSpecify](https://jspecify.dev) annotations, so Kotlin sees `String` and `Long?` instead of platform types. The annotations are compile-only: Kotlin reads them from the class files, and you need no extra dependency.
+`io.github.xantiagoma:xtandard-image` is the Java client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The library builds and signs the URLs your code sends to the server, and wraps its `/info` and health endpoints; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
 
-It is not on Maven Central yet. The coordinates `io.github.xantiagoma:xtandard-image` will follow the server's release tags. The namespace `io.github.xantiagoma` had no artifacts on Maven Central when this client was written (checked 2026-10-15).
+```sh
+export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand -hex 32)"
+docker run -d --name xtandard-image -p 8080:8080 \
+  -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
+  -e XI_SIGNING_KEYS="$XI_SIGNING_KEY" -e XI_SIGNING_SALTS="$XI_SIGNING_SALT" \
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+```
 
-**Build and sign URLs on a server.** The signing key signs every URL, and the encryption key decrypts every `enc/` source and PDF password.
+## Install
 
-## Install (after the first release)
+Maven:
 
 ```xml
 <dependency>
@@ -25,178 +29,172 @@ It is not on Maven Central yet. The coordinates `io.github.xantiagoma:xtandard-i
 </dependency>
 ```
 
+Gradle:
+
 ```kotlin
 implementation("io.github.xantiagoma:xtandard-image:0.x.y")
 ```
 
-Until then, `mvn install` in this directory puts `0.1.0-SNAPSHOT` in your local repository. Module users add `requires io.github.xantiagoma.xtandard.image;`.
+Not published yet: publishing to Maven Central is being set up. Until then, install from the repository: <!-- registry-status: pending -->
 
-## URL builder
+```sh
+git clone --depth 1 https://github.com/xantiagoma/xtandard-image
+cd xtandard-image/clients/java && mvn install -DskipTests   # JDK 21 and Maven 3.9 (or `mise install` there)
+```
+
+That puts `0.1.0-SNAPSHOT` in your local Maven repository; depend on that version, with `mavenLocal()` in Gradle. JPMS users add `requires io.github.xantiagoma.xtandard.image;`.
+
+## Quick start
+
+Build a signed URL with the keys the server was started with:
 
 ```java
 import io.github.xantiagoma.xtandard.image.*;
 
-ImgproxyUrlBuilder img = ImgproxyUrlBuilder.builder()
-    .baseUrl("https://img.example.com")
-    .signing(SigningKey.of(System.getenv("XI_SIGNING_KEY"), System.getenv("XI_SIGNING_SALT")))
-    .encryption(EncryptionKey.of(System.getenv("XI_ENCRYPTION_KEY"))) // only for enc/ sources and PDF passwords
+SigningKey signing = SigningKey.of(System.getenv("XI_SIGNING_KEY"), System.getenv("XI_SIGNING_SALT"));
+ImgproxyUrlBuilder img = ImgproxyUrlBuilder.builder().baseUrl("http://localhost:8080").signing(signing).build();
+
+String url = img.image("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+    .resize("fill", 1200, 630)
+    .gravity("sm")
+    .extension("jpg")
     .build();
+// http://localhost:8080/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
+```
 
-// Object form: an options list with one typed method per option name and alias.
-img.url("s3://photos/cat.jpg", ProcessingOptions.create().rs("fill", 1200, 630).g("sm").q(80), "webp");
-// https://img.example.com/<signature>/rs:fill:1200:630/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+Ask the server about the source with the HTTP client:
 
-// Fluent form: the same methods on a chain.
-img.image(Sources.xiSource("photos", "2026/cat.jpg")).resize("fit", 300, 300).blur(2).extension("png").build();
+```java
+XtandardClient xi = XtandardClient.builder("http://localhost:8080").signing(signing).build();
 
-// Chained pipelines (/-/): a list of options lists, or pipeline() in the fluent form.
+InfoResponse info = xi.info("https://images.unsplash.com/photo-1506744038136-46273834b3fb");
+System.out.println(info.format() + " " + info.width() + " " + info.height()); // jpeg 7360 4912
+```
+
+Sign URLs on a server only: the signing key signs any URL.
+
+## Usage
+
+### Building URLs
+
+There are two equivalent forms, an options list and a fluent chain. Both have one typed method per option name and alias:
+
+```java
+ImgproxyUrlBuilder img = ImgproxyUrlBuilder.builder().baseUrl("https://img.example.com").build();
+
+img.url("s3://photos/cat.jpg", ProcessingOptions.create().resize("fill", 300, 400).gravity("sm").quality(80), "webp");
+img.image("s3://photos/cat.jpg").resize("fill", 300, 400).g("sm").quality(80).extension("webp").build();
+// both: https://img.example.com/insecure/rs:fill:300:400/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+```
+
+The option methods are generated from the server's catalogue, with one overload per argument shape; `null` leaves an argument empty, and `option(name, args...)` adds any option by name. Each method's Javadoc lists the URL names, the argument values and ranges. The options themselves are documented in [URL dialects §3.2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#32-processing-options--tr). Builders and keys are immutable and thread-safe; options lists and chains are mutable, like `StringBuilder`.
+
+Builder settings: `separator` (default `:`), `unsignedSignature` (`insecure`, `unsafe` or `_`), `optionNames` (`SHORT` by default, `CANONICAL` or `GIVEN`) and `splitSource`.
+
+### Chained pipelines
+
+A list of options lists, or `pipeline()` in the fluent form, writes `/-/` between pipelines:
+
+```java
 img.url("s3://photos/cat.jpg",
-    List.of(ProcessingOptions.create().rs("fit", 500, 500), ProcessingOptions.create().bl(2)),
-    UrlParams.of());
+    List.of(ProcessingOptions.create().rs("fit", 500, 500), ProcessingOptions.create().bl(2)), UrlParams.of());
+img.image("s3://photos/cat.jpg").rs("fit", 500, 500).pipeline().bl(2).build();
+```
 
-// Plain or encrypted sources, a password-protected PDF.
-img.url("https://example.com/a b.jpg", ProcessingOptions.create().w(300),
-    UrlParams.of().withSourceEncoding(SourceEncoding.PLAIN));
-img.url("s3://private/cat.jpg", ProcessingOptions.create().w(300),
-    UrlParams.of().withSourceEncoding(SourceEncoding.ENCRYPTED));
-img.url("s3://docs/report.pdf", ProcessingOptions.create().rs("fit", 800, 0),
-    UrlParams.ofExtension("png").withPdfPassword("s3cret"));
+### Sources
 
-// /info, /video, HLS and DASH.
-img.infoUrl("s3://photos/cat.jpg", InfoOptions.create().size(true).format(true).dimensions(true));
-img.videoUrl("s3://media/talk.mov", VideoOptions.create().rs("fill", 640, 360).vs(12).vd(8), VideoContainer.WEBM);
-img.video("s3://media/talk.mov").start(12).duration(8).mute(true).extension("mp4").build();
+| `SourceEncoding` | URL |
+|---|---|
+| `BASE64` (default) | `/…/czM6Ly9waG90b3MvY2F0LmpwZw.webp` |
+| `PLAIN` | `/…/plain/https://example.com/a%20b.jpg`, escaped for you |
+| `ENCRYPTED` | `/…/enc/<token>`; needs `encryption` (below) |
+
+Set it on the builder (`sourceEncoding(…)`) or per call (`UrlParams.of().withSourceEncoding(SourceEncoding.PLAIN)`). `Sources.xiSource("photos", "2026/cat.jpg")` writes a named source (`xi://photos/2026/cat.jpg`) and `Sources.sourceUrl("s3", "bucket", "cat.jpg")` a storage URL.
+
+### `/info`
+
+```java
+img.infoUrl("s3://photos/cat.jpg", InfoOptions.create().size(true).format(true));
+img.info("s3://photos/cat.jpg").size(true).format(true).build();
+```
+
+### Video and streams
+
+`/video` URLs use the video option catalogue; the extension is the container (`mp4`, `webm`, `mp3`, `png` for a waveform, …). `streamUrl` builds HLS and DASH manifests, whose segments a player fetches without any key:
+
+```java
+img.video("s3://media/talk.mov").rs("fill", 640, 360).vs(12).vd(5).extension("webm").build();
 img.streamUrl("s3://media/talk.mov", StreamParams.hls().withRenditions(360, 720).withSegmentDuration(4));
 ```
 
-The option methods (`ProcessingMethods`, `InfoMethods`, `VideoMethods`) are generated from the server's catalogues: one overload per argument shape, with `long`, `double`, `boolean` and `String` parameters, and `@Nullable Number`/`String`/`Boolean` where an argument may be empty (`null` writes `rs:fill:300::1`). Each method's Javadoc lists the URL names, the arguments with their enum values and ranges, and the default. `option(name, args...)` adds any option by name. Numbers are written as JavaScript writes them (`300`, not `300.0`), so URLs and signatures match the other clients.
+The server needs the `full` or `gpl` image for video. Options and containers: [URL dialects §3.8](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123) and [§3.10](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#310-hls-and-dash-streams-wp-126-every-dialect).
 
-Bad input throws `UrlBuildException` (a `RuntimeException`), whose `code()` is the language-neutral `ErrorCode` of the conformance fixture: `UNKNOWN_OPTION`, `INVALID_ARGUMENT`, `INVALID_SOURCE`, `INVALID_EXTENSION`, `MISSING_SIGNING`, `MISSING_ENCRYPTION` and so on.
+### Query dialect
 
-Builders and keys are immutable and thread-safe. Options lists and fluent chains are mutable builders, like `StringBuilder`.
-
-`Xtandard` has static entry points named like the TypeScript client's factories: `imgproxy()`, `queryUrls()`, `client(baseUrl)`, `xiSource(name, key)`.
-
-## Query dialect
+`QueryUrlBuilder` builds `/q/` URLs (native keys plus imgproxy options in `o=`), `/q/video` and imaginary endpoints, signed with `xi_sig`. The server needs `XI_DIALECTS_QUERY_ENABLED=true`.
 
 ```java
-QueryUrlBuilder q = QueryUrlBuilder.builder()
-    .baseUrl("https://img.example.com")
-    .signing(SigningKey.of(KEY, SALT))
-    .build();
-q.url("s3://photos/cat.jpg", QueryParams.create().w(300).f("webp"), ProcessingOptions.create().bl(2));
-// https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&f=webp&o=bl:2&xi_sig=…
-q.videoUrl("s3://media/talk.mov", VideoOptions.create().rs("fill", 640, 360).vs(1), "webm");
-q.streamUrl("s3://media/talk.mov", StreamParams.hls().withRenditions(360));
-q.imaginaryUrl(ImaginaryEndpoint.RESIZE, "s3://photos/cat.jpg", ImaginaryParams.create().width(300));
-q.image("s3://photos/cat.jpg").param("w", 300).bl(2).build();
+QueryUrlBuilder q = QueryUrlBuilder.builder().baseUrl("https://img.example.com").signing(signing).build();
+q.url("s3://photos/cat.jpg", QueryParams.create().w(300).fit("cover"),
+    List.of(ProcessingOptions.create().bl(2)), UrlParams.ofExtension("webp"));
+// https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&fit=cover&o=bl:2&format=webp&xi_sig=…
+q.imaginaryUrl(ImaginaryEndpoint.SMARTCROP, "s3://photos/cat.jpg", ImaginaryParams.create().width(300).height(300));
 ```
 
-`QueryParams` and `ImaginaryParams` have a typed method per native key and alias, and `param(key, value)` for any key.
+See [URL dialects §4](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary).
 
-## HTTP client
+### Signing and encryption
+
+`SigningKey.of(key, salt)` takes the server's hex key and salt (`XI_SIGNING_KEYS` / `XI_SIGNING_SALTS`, or imgproxy's `IMGPROXY_KEY` / `IMGPROXY_SALT`). `EncryptionKey.of(key)` takes the first `XI_ENCRYPTION_KEYS` entry, for `enc/` sources and password-protected PDFs:
 
 ```java
-XtandardClient xi = XtandardClient.builder("http://localhost:8080")
-    .signing(SigningKey.of(KEY, SALT))
-    .timeout(Duration.ofSeconds(30))
-    .build();
+ImgproxyUrlBuilder img = ImgproxyUrlBuilder.builder().baseUrl(baseUrl).signing(signing)
+    .encryption(EncryptionKey.of(System.getenv("XI_ENCRYPTION_KEY"))).build();
+img.url("s3://private/cat.jpg", ProcessingOptions.create().w(300),
+    UrlParams.of().withSourceEncoding(SourceEncoding.ENCRYPTED));
+img.url("s3://docs/contract.pdf", ProcessingOptions.create().rs("fit", 800, 0), UrlParams.of().withPdfPassword("s3cret"));
+```
 
-xi.healthz();
-InfoResponse info = xi.info("s3://photos/cat.jpg", InfoOptions.create().size(true).format(true));
-Long width = info.width();                                // typed record, null when absent
-MediaResponse<byte[]> img = xi.image("s3://photos/cat.jpg", ProcessingOptions.create().w(300),
+Each `enc/` token gets a random IV. `Signing` (`sign`, `signImgproxyPath`, `signXiUrl`, `signXiQuery`) and `Encryption` (`encryptSource`, `encryptPdfPassword`) expose the primitives; `Signing.signXiUrl` adds an `xi_sig` to a URL of any other dialect. Schemes: [URL dialects §2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#2-signing-schemes-at-a-glance).
+
+### HTTP client
+
+`XtandardClient` runs on `java.net.http.HttpClient` (pass your own with `.httpClient(…)`). It has `healthz`, `readyz`, `info`, `image`, `video`, `stream`, `media` (with `Range` and `HEAD`) and `playgroundMeta`, and `xi.async()` has the same calls returning `CompletableFuture`s:
+
+```java
+MediaResponse<byte[]> res = xi.image("s3://photos/cat.jpg", ProcessingOptions.create().w(300),
     UrlParams.of(), MediaRequest.get().withAccept("image/avif,image/webp"));
-MediaResponse<byte[]> part = xi.video("s3://media/talk.mov", VideoOptions.create().vd(5),
-    UrlParams.ofExtension("webm"), MediaRequest.get().withRange(ByteRange.of(0, 1023)));   // 206
-MediaResponse<byte[]> head = xi.video("s3://media/talk.mov", VideoOptions.create().vd(5),
-    UrlParams.ofExtension("webm"), MediaRequest.head());
-StreamManifest m = xi.stream("s3://media/talk.mov", StreamParams.hls().withRenditions(360, 720));
-xi.media(m.body().lines().filter(l -> !l.startsWith("#")).findFirst().orElseThrow()); // ticket URLs need no signing
-
-// A large body as a stream (close it):
-MediaResponse<InputStream> big = xi.media(url, MediaRequest.get(), HttpResponse.BodyHandlers.ofInputStream());
-
-// The same calls, asynchronously:
-xi.async().info("s3://photos/cat.jpg", InfoOptions.create().size(true))
-    .thenAccept(i -> System.out.println(i.size()));
+xi.async().info("s3://photos/cat.jpg").thenAccept(i -> System.out.println(i.width()));
 ```
 
-Non-2xx responses throw an `HttpException` subclass chosen by status:
+### Errors
 
-- `HttpException.BadRequest` (400)
-- `HttpException.Forbidden` (403)
-- `HttpException.NotFound` (404)
-- `HttpException.NotAcceptable` (406)
-- `HttpException.Unprocessable` (422)
-- `HttpException.TooManyRequests` (429)
-- `HttpException.ServiceUnavailable` (503)
-- `HttpException.Gateway` (502, 504)
-- `HttpException.ServerError` (other 5xx; the parent of the two above)
-
-Each carries `status()`, `kind()`, `getMessage()` and `requestId()` from the server's JSON error envelope. Connection failures throw `TransportException`. `UrlBuildException`, `HttpException` and `TransportException` are the permitted subclasses of the sealed `XtandardException`. An async call's future fails with the same exceptions (`join()` wraps them in a `CompletionException`).
-
-Pass your own `HttpClient` with `.httpClient(...)` (proxy, TLS, executor, HTTP/2 settings). `MediaRequest` also takes extra headers, and `playgroundMeta()` reads the playground's `api/meta` (`playgroundBaseUrl` and `playgroundPath` point it at the admin listener).
-
-### HTTP QUERY (opt-in)
-
-The query dialect endpoints also accept the HTTP QUERY method (RFC 10008, server toggle `XI_SERVER_QUERY_METHOD`, on by default): the URL's query goes out as `application/x-www-form-urlencoded` content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content is the query of the signed GET URL. It is **off by default** in the client, because many CDNs and proxies neither cache nor forward QUERY.
+The builders throw `UrlBuildException`, whose `code()` (`ErrorCode.UNKNOWN_OPTION`, `INVALID_ARGUMENT`, `INVALID_SOURCE`, …) names the fault. The client throws an `HttpException` subclass by status (`HttpException.Forbidden`, `NotFound`, `TooManyRequests`, …) with the server's `status()`, `kind()` and `requestId()`, and `TransportException` when the connection fails. All three extend the sealed, unchecked `XtandardException`.
 
 ```java
-String url = q.url("s3://photos/cat.jpg", QueryParams.create().w(300));
-QueryMethodRequest req = Xtandard.queryMethodRequest(url);   // or QueryMethodRequest.from(url)
-// req.method() "QUERY", req.url() ".../q/", req.contentType(), req.body() "url=...&w=300&xi_sig=..."
-xi.media(url, MediaRequest.query());                          // this call as QUERY
-
-XtandardClient xq = XtandardClient.builder("http://localhost:8080").queryMethod(true).queryMount("/q").build();
-xq.media(url);                        // URLs under the mount go out as QUERY (MediaRequest.of(): no method named)
-xq.media(url, MediaRequest.get());    // an explicit GET (or HEAD) stays as it is
+try {
+  xi.info("https://example.com/a.jpg");
+} catch (HttpException e) {
+  System.out.println(e.status() + " " + e.kind() + " " + e.requestId()); // 403 forbidden …
+}
 ```
 
-A URL without a query, or with a fragment, throws `UrlBuildException` with `ErrorCode.INVALID_REQUEST`. URL builders are unchanged.
+## Compatibility
 
-## Coverage
+- Java 17 or later (tested on 17, 21 and 25). A JPMS module with no runtime dependencies: `javax.crypto`, `java.net.http` and a small internal JSON parser. JSpecify nullness annotations are compile-only, so Kotlin sees non-platform types.
+- On Android and Kotlin/Native, use the [Kotlin Multiplatform client](https://github.com/xantiagoma/xtandard-image/blob/main/clients/kotlin/README.md): Android has no `java.net.http`.
+- The library version is the server version: `0.2.1` matches `ghcr.io/xantiagoma/xtandard-image:0.2.1`. Versions follow [ZeroVer](https://0ver.org): a minor bump may break the API, a patch does not.
 
-| Server feature | Java |
-|---|---|
-| imgproxy processing options (90 with aliases), typed per option | `ProcessingOptions` and the fluent chains (`ProcessingMethods`), every name in the shared builder fixture |
-| `/info` options (35) | `InfoOptions`, `infoUrl()`, `info()`, `XtandardClient.info()` (typed `InfoResponse` record) |
-| `/video` options (52) and all 12 containers; `/video` signing | `VideoOptions`, `VideoContainer`, `videoUrl()`, `video()`, `XtandardClient.video()` with Range and HEAD |
-| HLS and DASH (`st`, `sgd`, `sgf:ts`, `@m3u8`, `@mpd`) | `StreamParams`, `streamUrl()` on both builders, `XtandardClient.stream()`; ticket child URLs through `media()` |
-| Password-protected PDFs (`pdp`) | `UrlParams.withPdfPassword()`, `withPdfPassword()` on the chains, `Encryption.encryptPdfPassword()` |
-| Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `splitSource()`, `Sources.xiSource()`, `Sources.sourceUrl()` |
-| Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder` (native keys typed in `QueryParams`), `Signing.signXiUrl()` |
-| HTTP QUERY on the query dialect (opt-in, off by default) | `QueryMethodRequest.from()` / `Xtandard.queryMethodRequest()`, `MediaRequest.query()`, `XtandardClient.Builder.queryMethod()` and `queryMount()` |
-| `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
+## Links
 
-Not covered, on purpose (as in the TypeScript client):
+- [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme) and [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md)
+- [URL dialects](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md): every option and signing scheme
+- [Playground](https://github.com/xantiagoma/xtandard-image/blob/main/docs/PLAYGROUND.md): build URLs in a browser and copy the Java code
+- [Changelog](https://github.com/xantiagoma/xtandard-image/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/xantiagoma/xtandard-image/blob/main/CONTRIBUTING.md) and [the official clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)
+- [Security policy](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md)
+- Licence: [MIT](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-- other dialects' URL shapes, which their own SDKs build;
-- imaginary's `sign` scheme;
-- presets-only URLs;
-- the playground's POST API.
+A personal project, provided as is under the MIT licence: see the [disclaimer](https://github.com/xantiagoma/xtandard-image#disclaimer).
 
-## Design decisions
-
-- **Maven, not Gradle.** The POM is what Maven Central publishes anyway, so the build is that one declarative file; mise pins Maven (no wrapper jar committed); the Central Portal plugin is Sonatype's own. The library needs no Gradle features (no variants, no Kotlin build logic).
-- **No JSON dependency.** `/info` answers are decoded by a strict RFC 8259 parser of about 250 lines (`Json`) into generated records. A Jackson or Gson dependency would have been the only runtime dependency, with its own version conflicts for every user, for one small document type. `InfoResponse.fromJson(String)` is public, so a response fetched another way can be decoded too.
-- **Typed methods, not a Map.** Java has no keyword arguments or literal types, so the TypeScript and Python option objects become generated method overloads (`rs(String, double, double)`), shared through generic interfaces by the options lists and the chains.
-- **Two fixture cases are skipped:** `/info` and `/video` URLs with chained pipelines. `InfoOptions` and `VideoOptions` are one pipeline each, so the API cannot express them (`clients/README.md`: skip what the type system rules out). The `/video` PDF password case runs: `UrlParams` is shared, and `videoUrl()` refuses its password with `INVALID_REQUEST`.
-
-## Development
-
-```sh
-cd clients/java
-mise install        # JDK 21 (build), JDK 17 (oldest runtime) and Maven, pinned in mise.toml
-task ci             # = task -d clients/java ci from the root: format, Error Prone, tests on 21 and 17, licences, jars
-task fmt            # google-java-format through Spotless
-task test           # conformance + builder fixture + vectors + unit + client tests
-XI_SMOKE_URL=http://127.0.0.1:8080 task test -- -Dtest=SmokeTest   # against the playground demo
-```
-
-- JDK 21 runs the build (javac `--release 17`, [Error Prone](https://errorprone.info) with [NullAway](https://github.com/uber/NullAway) in JSpecify mode, warnings are errors) and the tests; `task test17` runs them again on JDK 17. CI tests 17, 21 and 25.
-- `src/generated/java/` is generated from `clients/spec/spec.json` by `task clients:generate` (`clients/codegen/emitters/java.ts`). Do not edit it. Spotless leaves it alone; Error Prone and NullAway check it like the rest.
-- Tests read the shared fixtures from the repository by relative path (`../../clients/spec`, `../../testdata`). The HTTP tests use the JDK's `com.sun.net.httpserver` as the stand-in server.
-- `mvn -Prelease deploy` signs with GPG and uploads to the Central Portal (`central-publishing-maven-plugin`, `autoPublish=false`); no task or workflow runs it yet.
-
-Runtime dependencies: none. Compile-only: `org.jspecify:jspecify` (Apache-2.0). `scripts/CheckLicenses.java` (`task licenses`) fails on any runtime dependency and checks the compile-only ones against MIT, BSD, Apache-2.0 and ISC. Test-only: JUnit (EPL-2.0, never shipped). Build plugins (Error Prone, NullAway, Spotless, google-java-format) are Apache-2.0 or MIT and are not dependencies of the artifact.
+Design: every official client is generated from one spec and passes one conformance fixture ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)).

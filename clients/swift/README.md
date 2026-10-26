@@ -1,16 +1,25 @@
 <p align="center"><img src="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/logo-128.png" alt="xtandard-image" width="128" height="128"></p>
 
-# XtandardImage (Swift)
+# xtandard-image for Swift
 
-The official Swift client of [xtandard-image](../../README.md): typed URL builders for the imgproxy and query dialects, signing, `enc/` encryption, PDF passwords, and an async `URLSession` client with Range and HEAD. It follows the shared spec and conformance fixture of [`clients/`](../README.md) ([ADR 0013](../../docs/adr/0013-official-clients.md)).
+**Typed URL builder, signing and async client for the xtandard-image server, for apps and servers.**
 
-- Swift 6 language mode with strict concurrency: builders, keys and results are `Sendable` values.
-- iOS 15+, macOS 12+, tvOS 15+, watchOS 8+, visionOS 1+ and Linux (server-side Swift: Vapor, Hummingbird).
-- No dependencies on Apple platforms. On Linux, swift-crypto (Apache-2.0).
+[![Swift Package Index: pending](https://img.shields.io/badge/Swift%20Package%20Index-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
+
+`XtandardImage` is the Swift client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The package builds and signs the URLs your code sends to the server, and wraps its `/info`, media and health endpoints with `URLSession`; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
+
+```sh
+export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand -hex 32)"
+docker run -d --name xtandard-image -p 8080:8080 \
+  -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
+  -e XI_SIGNING_KEYS="$XI_SIGNING_KEY" -e XI_SIGNING_SALTS="$XI_SIGNING_SALT" \
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+```
 
 ## Install
 
-SwiftPM reads the package from **this repository's root** (`Package.swift` there points at `clients/swift/`); there is no mirror repository. Versions are the repository's own `vX.Y.Z` tags, in lockstep with the server (ADR 0013 §6).
+The package is this repository: its root `Package.swift` serves the `XtandardImage` product, and versions are the repository's `vX.Y.Z` tags.
 
 ```swift
 // Package.swift
@@ -24,170 +33,165 @@ targets: [
 ]
 ```
 
-In Xcode: File › Add Package Dependencies…, then the repository URL. A clone of the repository is about 24 MB with history; SwiftPM caches it. Nothing is tagged for Swift yet: until the first release, depend on a branch or revision (`.package(url: …, branch: "main")`), or on a local checkout (`.package(path: "../xtandard-image")`).
+In Xcode: File › Add Package Dependencies…, then the repository URL.
 
-Needs Swift 6.2 or later (Xcode 26): the manifest uses tools version 6.2, and the code compiles in the Swift 6 language mode.
-
-## Use
+Not published yet: publishing to the Swift Package Index is being set up. Until then, install from the repository: <!-- registry-status: pending -->
 
 ```swift
+.package(url: "https://github.com/xantiagoma/xtandard-image", branch: "main"),
+```
+
+## Quick start
+
+Build a signed URL with the keys the server was started with:
+
+```swift
+import Foundation
 import XtandardImage
 
-let img = imgproxy(
-    baseURL: "https://img.example.com",
-    signing: try SigningKey(key: "943b421c…c6da0881", salt: "520f986b…fea309c5"))  // hex, as in XI_SIGNING_KEYS
+let env = ProcessInfo.processInfo.environment
+let key = try SigningKey(key: env["XI_SIGNING_KEY"]!, salt: env["XI_SIGNING_SALT"]!)
+let img = imgproxy(baseURL: "http://localhost:8080", signing: key)
 
-// Mapping form: names or aliases, in URL order; a bare value or a list each; nil skips the option.
-let url = try img.url(
-    "https://example.com/images/cat.jpg",
-    options: ["rs": [ProcessingOption.ResizeType.fit, 300, 300], "q": 80, "bl": nil],
-    extension: "png")
-// https://img.example.com/<signature>/rs:fit:300:300/q:80/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw.png
-
-// Fluent form: one method per option name and alias (generated), the same URL.
-let same = try img.image("https://example.com/images/cat.jpg")
-    .resize(ProcessingOption.ResizeType.fit, 300, 300)
-    .quality(80)
-    .extension("png")
+let url = try img.image("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+    .resize("fill", 1200, 630)
+    .gravity("sm")
+    .extension("jpg")
     .build()
-
-// Chained pipelines, nulls (empty arguments) and booleans (1/0).
-let chained = try img.image("s3://photos/cat.jpg")
-    .rs("fill", 600, 400, nil, true)       // rs:fill:600:400::1
-    .g(ProcessingOption.GravityType.fp, 0.5, 0.25)
-    .pipeline()
-    .bl(2)
-    .build()
-
-// /info, /video and streams.
-let info = try img.infoURL("s3://photos/cat.jpg", options: ["size": true, "format": true])
-let clip = try img.videoURL("s3://media/talk.mov", options: ["vs": 12, "vd": 8], extension: "webm")
-let hls = try img.streamURL("s3://media/talk.mov", protocol: .hls, renditions: [360, 720])
-
-// Query dialect (/q/, /q/video, imaginary endpoints), signed with xi_sig.
-let q = queryURLs(baseURL: "https://img.example.com", signing: img.signing)
-let native = try q.url("s3://photos/cat.jpg", params: ["w": 300, "f": "webp"], options: ["bl": 2])
-let resized = try q.imaginaryURL(.resize, "https://example.com/a.jpg", params: ["width": 300])
+// http://localhost:8080/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
 ```
 
-Option names are written short by default (`rs`, `q`); `optionNames: .canonical` writes `resize`, `.given` writes what you called. Numbers are written as ECMAScript writes them (`300`, `0.5`, `1e-7`), so the URL and its signature match every other client.
-
-### Encryption and PDF passwords
+Ask the server about the source with the HTTP client:
 
 ```swift
-let enc = try EncryptionKey(key: "1eb5b0e9…0c18e0f1")             // XI_ENCRYPTION_KEYS; a random IV per token
-let secret = imgproxy(signing: key, encryption: enc, sourceEncoding: .encrypted)
-let hidden = try secret.url("https://private.example.com/a.jpg", options: ["w": 640])  // …/enc/<token>
-let pdf = try secret.url("s3://docs/report.pdf", options: ["w": 800], pdfPassword: "s3cret")  // …/pdp:<token>/…
+let xi = XtandardClient(baseURL: "http://localhost:8080", signing: key)
+let info = try await xi.info("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+print(info.format ?? "", info.width ?? 0, info.height ?? 0)  // jpeg 7360 4912
 ```
+
+Sign URLs on your server. In apps, read [Keys in apps](#keys-in-apps) first.
+
+## Usage
+
+### Building URLs
+
+There are two equivalent forms, an `Options` dictionary literal and a fluent chain with one method per option name and alias:
+
+```swift
+try img.url("s3://photos/cat.jpg", options: ["rs": ["fill", 300, 400], "g": "sm", "q": 80], extension: "webp")
+try img.image("s3://photos/cat.jpg").resize(ProcessingOption.ResizeType.fill, 300, 400).g("sm").quality(80).extension("webp").build()
+// both: http://localhost:8080/<signature>/rs:fill:300:400/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+```
+
+A value is a bare argument or a list; `nil` as an argument leaves it empty, and `nil` as a value skips the option. Builders, keys and results are `Sendable` values. The options themselves are documented in [URL dialects §3.2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#32-processing-options--tr).
+
+`imgproxy(…)` also takes `separator` (default `:`), `unsignedSignature` (`insecure`, `unsafe` or `_`) and `optionNames` (`.short` by default, `.canonical` or `.given`).
+
+### Chained pipelines
+
+`pipelines:`, or `pipeline()` in the fluent form, writes `/-/` between pipelines:
+
+```swift
+try img.url(src, pipelines: [["rs": ["fit", 500, 500]], ["bl": 2]])
+try img.image(src).rs("fit", 500, 500).pipeline().bl(2).build()
+```
+
+### Sources
+
+| `sourceEncoding` | URL |
+|---|---|
+| `.base64` (default) | `/…/czM6Ly9waG90b3MvY2F0LmpwZw.webp`; `splitSource: 16` splits it into segments |
+| `.plain` | `/…/plain/https://example.com/a%20b.jpg@webp`, escaped for you |
+| `.encrypted` | `/…/enc/<token>.webp`; needs `encryption` (below) |
+
+Set it on the builder or per URL (`sourceEncoding:`). `try xiSource("photos", "2026/cat.jpg")` writes a named source (`xi://photos/2026/cat.jpg`) and `try sourceURL(.s3, "bucket", "cat.jpg")` a storage URL.
+
+### `/info`
+
+```swift
+try img.infoURL(src, options: ["size": true, "format": true])
+try img.info(src).size(true).format(true).build()
+```
+
+### Video and streams
+
+`/video` URLs use the video option catalogue; the extension is the container (`mp4`, `webm`, `mp3`, `png` for a waveform, …). `streamURL` builds HLS and DASH manifests, whose segments a player fetches without any key:
+
+```swift
+try img.video("s3://media/talk.mov").resize("fill", 640, 360).start(12).duration(5).extension("webm").build()
+try img.streamURL("s3://media/talk.mov", protocol: .hls, renditions: [360, 720], segmentDuration: 4)
+```
+
+The server needs the `full` or `gpl` image for video. Options and containers: [URL dialects §3.8](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123) and [§3.10](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#310-hls-and-dash-streams-wp-126-every-dialect).
+
+### Query dialect
+
+`queryURLs(…)` builds `/q/` URLs (native keys plus imgproxy options in `o=`), `/q/video` and imaginary endpoints, signed with `xi_sig`. The server needs `XI_DIALECTS_QUERY_ENABLED=true`.
+
+```swift
+let q = queryURLs(baseURL: "https://img.example.com", signing: key)
+try q.url("s3://photos/cat.jpg", params: ["w": 300, "fit": "cover"], options: ["bl": 2], extension: "webp")
+// https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&fit=cover&o=bl:2&format=webp&xi_sig=…
+try q.imaginaryURL(.smartcrop, "s3://photos/cat.jpg", params: ["width": 300, "height": 300])
+```
+
+`queryMethodRequest(url)` turns a query URL into an HTTP QUERY request, and `XtandardClient(…, queryMethod: true)` sends one. See [URL dialects §4](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary).
+
+### Signing and encryption
+
+`SigningKey(key:salt:)` takes the server's hex key and salt (`XI_SIGNING_KEYS` / `XI_SIGNING_SALTS`, or imgproxy's `IMGPROXY_KEY` / `IMGPROXY_SALT`). `EncryptionKey(key:)` takes the first `XI_ENCRYPTION_KEYS` entry, for `enc/` sources and password-protected PDFs:
+
+```swift
+let enc = try EncryptionKey(key: env["XI_ENCRYPTION_KEY"]!)  // a random IV per token unless you pass iv:
+let secret = imgproxy(baseURL: "http://localhost:8080", signing: key, encryption: enc)
+try secret.url("s3://private/cat.jpg", options: ["w": 300], sourceEncoding: .encrypted)
+try secret.url("s3://docs/contract.pdf", options: ["rs": ["fit", 800, 0]], pdfPassword: "s3cret")
+```
+
+`sign`, `signImgproxyPath`, `signXiURL`, `signXiQuery`, `encryptSource` and `encryptPDFPassword` are public too; `signXiURL` adds an `xi_sig` to a URL of any other dialect. Schemes: [URL dialects §2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#2-signing-schemes-at-a-glance).
+
+### Keys in apps
+
+Signing and encryption work on every platform, but **a key embedded in an app can be extracted**: the signing key signs every URL and the encryption key decrypts every `enc/` source. In apps you ship to users, prefer unsigned URLs with the server's `restricted` unsigned policy (presets or allowed sizes; build with `imgproxy()` and no `signing:`), or URLs signed by your backend that the app only fetches. The DocC article *Keys in apps* has the details.
 
 ### HTTP client
 
+`XtandardClient` uses `URLSession` with `async throws(ClientError)`: `healthz`, `readyz`, `info`, `image`, `video`, `stream`, `media` and `playgroundMeta`, plus `bytes(_:)` for streamed bodies on Apple platforms:
+
 ```swift
-let xi = XtandardClient(baseURL: "https://img.example.com", signing: key)
-try await xi.healthz()
-let ready = try await xi.readyz()                                     // .ready / .starting / .draining
-let meta = try await xi.info("s3://photos/cat.jpg", options: ["size": true, "format": true])
-print(meta.width ?? 0, meta.format ?? "")                             // typed InfoResponse (Codable)
-
-let webp = try await xi.image("s3://photos/cat.jpg", options: ["w": 320], media: MediaOptions(accept: "image/avif,image/webp"))
-let part = try await xi.video("s3://media/talk.mov", options: ["vd": 5], extension: "webm",
-                              media: MediaOptions(range: .bytes(0, 1023)))   // 206
-let head = try await xi.video("s3://media/talk.mov", options: ["vd": 5], extension: "webm",
-                              media: MediaOptions(method: .head))
-let manifest = try await xi.stream("s3://media/talk.mov", protocol: .hls, renditions: [360])
-
-#if canImport(Darwin)
-let (bytes, response) = try await xi.bytes(clip)                      // URLSession.AsyncBytes
-for try await byte in bytes { /* … */ }
-#endif
+let res = try await xi.image(src, options: ["w": 300], media: MediaOptions(accept: "image/avif,image/webp"))
+let part = try await xi.video(src, options: ["vd": 5], extension: "webm", media: MediaOptions(range: .bytes(0, 65535)))
 ```
 
-Errors are typed: builders throw `URLBuildError` (`error.code` is the shared code: `.unknownOption`, `.invalidArgument`, …); the client throws `ClientError`: `.build`, `.http(HTTPError)` (status, `kind`, `message`, `requestID`, `category`), `.transport` or `.decode`.
+### Errors
 
-### HTTP QUERY (opt-in)
-
-Query dialect URLs can go out with the HTTP QUERY method (RFC 10008): the URL's query, `xi_sig` included, becomes the request content (`application/x-www-form-urlencoded`), so long option chains or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server accepts it unless `XI_SERVER_QUERY_METHOD=false`.
+Builders throw `URLBuildError`, whose `code` is the error code (`.unknownOption`, `.invalidArgument`, `.invalidSource`, …). The client throws `ClientError`: `.http(HTTPError)` for a non-2xx answer, with the server's `status`, `kind` and `requestID`; `.transport` when no answer came; `.build` and `.decode`.
 
 ```swift
-let req = try queryMethodRequest(try q.url("s3://photos/cat.jpg", params: ["w": 300]))  // method, url, contentType, body
-let one = try await xi.media(try q.url("s3://photos/cat.jpg"), MediaOptions(method: .query))
-let all = XtandardClient(baseURL: "https://img.example.com", queryMethod: true)        // URLs under queryMount, when no method is given
-```
-
-A URL without a query (or with a fragment) throws `URLBuildError` with `.invalidRequest` (`ClientError.build` from `media()`).
-
-### Vapor
-
-```swift
-import Vapor
-import XtandardImage
-
-extension Application {
-    var images: ImgproxyURLBuilder {
-        imgproxy(baseURL: Environment.get("XI_BASE_URL")!,
-                 signing: try! SigningKey(key: Environment.get("XI_KEY")!, salt: Environment.get("XI_SALT")!))
-    }
-}
-
-app.get("avatar", ":id") { req -> Response in
-    let url = try req.application.images.url("s3://avatars/\(req.parameters.get("id")!).jpg",
-                                             options: ["rs": ["fill", 128, 128]], extension: "webp")
-    return req.redirect(to: url)
+do {
+    _ = try await xi.info("https://example.com/a.jpg")
+} catch {
+    if case .http(let e) = error { print(e.status, e.kind, e.requestID ?? "") }  // 403 forbidden …
 }
 ```
 
-## Keys in apps
+## Compatibility
 
-Signing and `enc/` encryption are fully supported on iOS, macOS, tvOS, watchOS and visionOS, but **a key embedded in an app binary can be extracted**: the signing key signs every URL and the encryption key decrypts every `enc/` source and PDF password. In apps you ship to users, prefer:
+- Swift 6.2 or later (Xcode 26), in the Swift 6 language mode with strict concurrency.
+- iOS 15, macOS 12, tvOS 15, watchOS 8, visionOS 1, and Linux for server-side Swift (Vapor, Hummingbird).
+- No dependencies on Apple platforms (CryptoKit and CommonCrypto); swift-crypto (Apache-2.0) elsewhere. swift-crypto vendors the eXtended Keccak Code Package under CC0-1.0, a public-domain dedication, linked on non-Apple platforms only.
+- The package version is the server version: tag `v0.2.1` matches `ghcr.io/xantiagoma/xtandard-image:0.2.1`. Versions follow [ZeroVer](https://0ver.org): a minor bump may break the API, and a patch does not.
 
-- **unsigned URLs** with the server's `restricted` unsigned policy and a list of presets or allowed sizes (build URLs with `imgproxy()` and no `signing:`), or
-- **backend-signed URLs**: your server signs, the app only fetches (`XtandardClient.media(_:)` or any image loader).
+## Links
 
-The DocC article *Keys in apps* says the same.
+- [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme) and [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md)
+- [URL dialects](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md): every option and signing scheme
+- [Playground](https://github.com/xantiagoma/xtandard-image/blob/main/docs/PLAYGROUND.md): build URLs in a browser and copy the Swift code
+- [Changelog](https://github.com/xantiagoma/xtandard-image/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/xantiagoma/xtandard-image/blob/main/CONTRIBUTING.md) and [the official clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)
+- [Security policy](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md)
+- Licence: [MIT](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-## Crypto per platform
+A personal project, provided as is under the MIT licence: see the [disclaimer](https://github.com/xantiagoma/xtandard-image#disclaimer).
 
-| Platform | HMAC-SHA256 | AES-CBC + PKCS#7 | Random IV |
-|---|---|---|---|
-| iOS, macOS, tvOS, watchOS, visionOS | CryptoKit (`HMAC<SHA256>`) | CommonCrypto (`CCCrypt`, `kCCOptionPKCS7Padding`) | `SystemRandomNumberGenerator` |
-| Linux (and Android, Windows) | swift-crypto `Crypto` (same API as CryptoKit, on BoringSSL) | swift-crypto `_CryptoExtras` (`AES._CBC`, PKCS#7 by default; since 3.1.0) | `SystemRandomNumberGenerator` |
-
-Both paths run the same shared vectors. The manifest depends on swift-crypto `3.1.0..<6.0.0` (wide, so it resolves next to Vapor's own requirement) only for non-Apple platforms; SwiftPM still downloads it on Apple platforms but never builds it.
-
-## Coverage
-
-| Server feature | Swift |
-|---|---|
-| imgproxy processing options (90 with aliases), typed per option | `ProcessingOption` (names, short names, aliases, one enum per enum argument), `Options`, generated fluent methods; every name in the shared builder fixture |
-| `/info` options (35) | `InfoOption`, `infoURL()`, `info()`, `XtandardClient.info()` (Codable `InfoResponse`) |
-| `/video` options (50) and all 12 containers; `/video` signing | `VideoOption`, `videoURL()`, `video()`, `XtandardClient.video()` with Range and HEAD |
-| HLS and DASH (`st`, `sgd`, `sgf:ts`, `@m3u8`, `@mpd`) | `streamURL()` on both builders, `XtandardClient.stream()`; ticket child URLs through `media()` |
-| Password-protected PDFs (`pdp`) | `pdfPassword:` / `withPDFPassword()`, `encryptPDFPassword()` |
-| Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `sourceEncoding`, `splitSource`, `xiSource()`, `sourceURL()` |
-| Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryURLBuilder`, `ImaginaryEndpoint`, `signXiURL()` |
-| HTTP QUERY on the query dialect (opt-in) | `queryMethodRequest()` (`QueryMethodRequest`), `XtandardClient(queryMethod:queryMount:)`, `MediaOptions(method: .query)` |
-| `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
-| Streaming bodies | `bytes(_:_:)` (`URLSession.AsyncBytes`) on Apple platforms; `media()` reads the whole body everywhere |
-
-Not covered, on purpose (as in the TypeScript client): other dialects' URL shapes, imaginary's `sign` scheme, presets-only URLs, the playground's POST API.
-
-Conformance: 147 of 150 cases pass on macOS and Linux; 3 are skipped as not expressible by the typed API (`infoURL` and `videoURL` take one `Options`, so they cannot chain pipelines; `videoURL` has no PDF password parameter).
-
-## Development
-
-The manifest is the repository root's `Package.swift`; the tasks here pass `--package-path ../..` and build into `clients/swift/.build`.
-
-```sh
-task ci        # swift-format lint, build (warnings as errors), tests, licence check, DocC
-task linux     # build, tests, licences and DocC in the official swift image (mise.toml pins it)
-XI_SMOKE_URL=http://127.0.0.1:8080 task test   # adds the smoke test against the playground demo
-task format    # rewrite the hand-written sources with swift-format
-```
-
-- **Toolchain.** mise's swift backend is experimental and installs no Apple SDKs, so macOS uses the Xcode toolchain (Xcode 26: Swift 6.2+, swift-format and docc included) and Linux the official `swift:6.3.3` image (`mise.toml`). CI does the same (`.github/workflows/client-swift.yml`).
-- **Generated code.** `Sources/XtandardImage/Generated/` is written by `clients/codegen/emitters/swift.ts` (`task clients:generate`) and is not formatted or linted by hand.
-- **Tests** (Swift Testing) read the three shared fixtures by relative path from the repository (`clients/spec/conformance.json`, `testdata/urls/imgproxy-builder.json`, `testdata/security/vectors.json`) and run the HTTP client against a stand-in server on POSIX sockets.
-- **Docs.** `scripts/docs.sh` runs the toolchain's `docc` on the module's symbol graph with warnings as errors, so the package has no swift-docc-plugin dependency.
-- **Licences.** `scripts/check-licenses.sh` checks the resolved closure: swift-crypto and swift-asn1 (Apache-2.0). **Exception:** swift-crypto vendors the eXtended Keccak Code Package (`CXKCP`, SHA-3 and ML-KEM) under CC0-1.0, a public-domain dedication; it is linked on non-Apple platforms only. BoringSSL inside swift-crypto is Apache-2.0.
-- **Registry.** SwiftPM has no central registry here: the package is its Git URL (identity `xtandard-image`, product `XtandardImage`). After the first release it can be submitted to the Swift Package Index by URL.
+Design: every official client is generated from one spec and passes one conformance fixture ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)).

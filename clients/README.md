@@ -1,23 +1,34 @@
 # Official clients
 
-URL builders and HTTP clients for xtandard-image in the main backend languages ([ADR 0013](../docs/adr/0013-official-clients.md)). They all share one language-neutral spec, one conformance fixture and one code generator. Build and sign URLs **on a server**: the signing key signs everything, and the encryption key decrypts every `enc/` source and PDF password. The Swift, Kotlin Multiplatform and Dart clients also run in apps: signing and encryption stay optional there, because keys shipped in an app can be extracted; use the server's `restricted` unsigned policy (presets, allowed sizes) or URLs signed by your backend.
+Libraries that build and sign URLs for an [xtandard-image](../README.md) server, encrypt `enc/` sources and PDF passwords, and call `/info`, the media endpoints and the health endpoints. They are clients only: you still run the server ([Getting started](../docs/GETTING-STARTED.md)). Each client's README is the page its package registry shows.
 
-| Language | Directory | Package | Status |
+Build and sign URLs **on a server**: the signing key signs everything, and the encryption key decrypts every `enc/` source and PDF password. The Swift, Kotlin Multiplatform and Dart clients also run in apps: signing and encryption stay optional there, because keys shipped in an app can be extracted; use the server's `restricted` unsigned policy (presets, allowed sizes) or URLs signed by your backend.
+
+| Language | README | Package | Install (once published) |
 |---|---|---|---|
-| TypeScript | [`clients/typescript`](typescript) | npm `@xtandard/image` | reference implementation (ADR 0009, ADR 0013) |
-| Python | [`clients/python`](python) | PyPI `xtandard-image` | WP-134 |
-| Go | [`clients/go`](go) | module `github.com/xantiagoma/xtandard-image/clients/go` (tags `clients/go/vX.Y.Z`) | WP-135 |
-| PHP | [`clients/php`](php) | Packagist `xtandard/image` | WP-136 |
-| Ruby | [`clients/ruby`](ruby) | RubyGems `xtandard-image` | WP-137 |
-| Rust | [`clients/rust`](rust) | crates.io `xtandard-image` | WP-138 |
-| Java | [`clients/java`](java) | Maven Central `io.github.xantiagoma:xtandard-image` | WP-139 |
-| .NET | [`clients/dotnet`](dotnet) | NuGet `Xtandard.Image` (+ `Xtandard.Image.Extensions` for DI) | WP-140 |
-| Elixir | [`clients/elixir`](elixir) | Hex `xtandard_image` | WP-141 |
-| Swift | [`clients/swift`](swift) | SwiftPM product `XtandardImage`, from this repository's root `Package.swift` (tags `vX.Y.Z`) | WP-142 |
-| Dart (Flutter and servers) | [`clients/dart`](dart) | pub.dev `xtandard_image` | WP-144 |
-| Kotlin Multiplatform | [`clients/kotlin`](kotlin) | Maven Central `io.github.xantiagoma:xtandard-image-kmp` (JVM, Android, iOS, macOS) | WP-143 |
+| TypeScript | [`clients/typescript`](typescript/README.md) | npm `@xtandard/image` | `npm i @xtandard/image` |
+| Python | [`clients/python`](python/README.md) | PyPI `xtandard-image` | `pip install xtandard-image` |
+| Go | [`clients/go`](go/README.md) | module `github.com/xantiagoma/xtandard-image/clients/go` (tags `clients/go/vX.Y.Z`) | `go get github.com/xantiagoma/xtandard-image/clients/go` |
+| PHP | [`clients/php`](php/README.md) | Packagist `xtandard/image` (from the root `composer.json`) | `composer require xtandard/image` |
+| Ruby | [`clients/ruby`](ruby/README.md) | RubyGems `xtandard-image` | `gem install xtandard-image` |
+| Rust | [`clients/rust`](rust/README.md) | crates.io `xtandard-image` | `cargo add xtandard-image` |
+| Java | [`clients/java`](java/README.md) | Maven Central `io.github.xantiagoma:xtandard-image` | Maven or Gradle coordinates |
+| Kotlin Multiplatform | [`clients/kotlin`](kotlin/README.md) | Maven Central `io.github.xantiagoma:xtandard-image-kmp` (JVM, Android, iOS, macOS) | Gradle coordinates |
+| .NET | [`clients/dotnet`](dotnet/README.md) | NuGet `Xtandard.Image` (+ `Xtandard.Image.Extensions` for DI) | `dotnet add package Xtandard.Image` |
+| Elixir | [`clients/elixir`](elixir/README.md) | Hex `xtandard_image` | `{:xtandard_image, "~> 0.1.0"}` |
+| Swift | [`clients/swift`](swift/README.md) | SwiftPM product `XtandardImage`, from the root `Package.swift` (tags `vX.Y.Z`) | `.package(url: "https://github.com/xantiagoma/xtandard-image", from: "0.1.0")` |
+| Dart and Flutter | [`clients/dart`](dart/README.md) | pub.dev `xtandard_image` | `dart pub add xtandard_image` |
 
-Nothing is published yet. Every client is versioned in lockstep with the server's release tags (`0.x`).
+Nothing is published yet; publishing to each registry is being set up ([RELEASE](../docs/RELEASE.md)). Every client is versioned in lockstep with the server's release tags (`0.x`, [ZeroVer](https://0ver.org)). The design is in [ADR 0013](../docs/adr/0013-official-clients.md).
+
+## Client READMEs
+
+Every client README follows one template, adapted to the language: the logo, `# xtandard-image for <Language>`, a one-line tagline and a badge row; two or three sentences saying it is a client for the server, with the `docker run` line from the root README (full `ghcr.io/xantiagoma/xtandard-image:<tag>` reference, the tag the root README uses, and the `XI_SOURCES…` allowlist); Install (the registry command first); a Quick start that signs a URL with keys from the environment and fetches `/info`; short Usage sections (building URLs, chained pipelines, sources, `/info`, video and streams, the query dialect, signing and encryption, the HTTP client, errors); Compatibility; Links. The option reference stays in [URL-DIALECTS](../docs/URL-DIALECTS.md) and the language's API docs, not in the README.
+
+- **Links are absolute** (`https://github.com/xantiagoma/xtandard-image/blob/main/...`): registries ship the README without `docs/`.
+- **HTML or Markdown.** npm, PyPI, crates.io, Packagist and GitHub (Ruby, Java, Kotlin, Swift) render HTML: the logo is `<p align="center"><img …></p>`. pkg.go.dev, NuGet, pub.dev and Hex/ex_doc drop or escape raw HTML: the logo is Markdown `![xtandard-image](…)` ([BRAND](../docs/BRAND.md#where-each-file-goes)).
+- **Registry status marker.** Until a client is published, its badge row has a static `https://img.shields.io/badge/<Registry>-pending-lightgrey` badge linking to [RELEASE](../docs/RELEASE.md), and its Install section has one line, "Not published yet: publishing to <Registry> is being set up. Until then, install from the repository:", before the install from the repository. Both carry the marker `registry-status: pending`: as `<!-- registry-status: pending -->` at the end of the line in the HTML READMEs, and as a `[//]: # (registry-status: pending)` line directly above them in the Markdown-only ones (Go, .NET, Elixir, Dart), where an HTML comment could be shown as text. When a client is published, `rg 'registry-status: pending' clients/<lang>/README.md` finds both: swap the badge for the registry's version badge, and delete the note line (with its marker) and the install from the repository below it.
+- **Packagist and Swift Package Index** read the repository root (`composer.json` and `Package.swift` live there), so they show the root README, whose Clients table links to `clients/php` and `clients/swift`.
 
 ## What is shared
 
@@ -48,7 +59,7 @@ Follow these steps in order. Python (`clients/python`) is the worked example. Co
 
 1. **Directory.** Create `clients/<lang>/` as a normal project for its ecosystem. Add:
    - a copy of the root `LICENSE`;
-   - a `README.md` with install instructions, examples and a coverage table like Python's;
+   - a `README.md` that follows the template in [Client READMEs](#client-readmes) (copy the TypeScript or Python one), and is wired into the package manifest so the registry shows it;
    - a `mise.toml` pinning the toolchain (ADR 0013 §5; use the official language Docker image only if mise cannot install it, and never `xtandard-base:*`);
    - a `Taskfile.yml` whose `ci` task installs, lints, type-checks, tests, checks licences and builds. `task clients:test` finds it automatically.
 2. **Generator: refiner, printer, leaf tokens.** Generated files are never built by concatenating strings or template literals (WP-146): a language is a **refiner** that builds typed nodes, a **printer** that turns them into a layout document, and its **leaf tokens**.
@@ -76,7 +87,7 @@ Follow these steps in order. Python (`clients/python`) is the worked example. Co
 4. **Tests.** Run all three shared fixtures from the repository by relative path, plus unit tests and HTTP client tests against a stand-in server. Add a smoke test against a real server, skipped unless `XI_SMOKE_URL` is set; the playground demo at `http://127.0.0.1:8080` has unsigned URLs allowed, `xi://local/jpeg/baseline.jpg` and `xi://local/video/bbb-h264-aac.mp4`.
 5. **Licences.** Add a script that checks the runtime dependency closure against MIT, BSD, Apache-2.0 and ISC (ADR 0006). Document any exception with its reason, in the script and in the README.
 6. **CI.** Add `.github/workflows/client-<lang>.yml`, copied from `client-python.yml`, with path filters `clients/<lang>/**`, `clients/spec/**`, `testdata/urls/**`, `testdata/security/**` and the workflow itself. It is gated by `vars.XI_CLIENTS_WORKFLOW == 'enabled'` and has a matrix over the supported runtimes. Add `'clients/<lang>/**'` to `ci.yml`'s `paths-ignore`.
-7. **Docs.** Fill in your row in the table above and in `docs/ROADMAP.md` (M6), and add a line in the README's clients section. Note anything you could not do in the WP's "Deviations".
+7. **Docs.** Fill in your row in the table above and in `docs/ROADMAP.md` (M6), and add a line in the root README's clients section. Note anything you could not do in the WP's "Deviations".
 
 Do not edit `spec.json` by hand, change another language's emitter, or change `conformance.json` values by hand. If a case seems wrong, fix the reference (TypeScript) or the server and regenerate with `task clients:fixtures`. Add new **cases** freely: inputs by hand, then `task clients:fixtures`.
 

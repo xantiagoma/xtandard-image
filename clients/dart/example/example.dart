@@ -44,7 +44,7 @@ Future<void> main(List<String> args) async {
 
   // /video and HLS.
   print(
-      img.video('s3://media/talk.mov').start(12).duration(8).extension('mp4'));
+      img.video('s3://media/talk.mov').start(12).duration(8).extension('mp4').build());
   print(img.streamUrl(
     's3://media/talk.mov',
     protocol: StreamProtocol.hls,

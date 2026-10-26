@@ -2,163 +2,197 @@
 
 # xtandard-image for Python
 
-The official Python client of [xtandard-image](https://github.com/xantiagoma/xtandard-image) ([ADR 0013](../../docs/adr/0013-official-clients.md)). It has:
+**Typed URL builder, signing and HTTP client (sync and async) for the xtandard-image server.**
 
-- typed URL builders for the imgproxy dialect (processing, `/info`, `/video`, HLS and DASH) and the query dialect (`/q/`, `/q/video`, imaginary endpoints);
-- imgproxy and `xi_sig` signing;
-- `enc/` source and PDF password encryption;
-- synchronous and asynchronous HTTP clients on [httpx](https://www.python-httpx.org/).
+[![PyPI: pending](https://img.shields.io/badge/PyPI-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-It needs Python 3.10 or later. It is fully typed (`py.typed`), and clean under pyright and mypy in strict mode.
+`xtandard-image` is the Python client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The package builds and signs the URLs your code sends to the server, and wraps its `/info`, media and health endpoints on [httpx](https://www.python-httpx.org/); it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
 
-It is not on PyPI yet. The package `xtandard-image` will follow the server's release tags.
+```sh
+export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand -hex 32)"
+docker run -d --name xtandard-image -p 8080:8080 \
+  -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
+  -e XI_SIGNING_KEYS="$XI_SIGNING_KEY" -e XI_SIGNING_SALTS="$XI_SIGNING_SALT" \
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+```
 
-**Build and sign URLs on a server.** The signing key signs every URL, and the encryption key decrypts every `enc/` source and PDF password.
+## Install
 
-## Install (from the repository, until the first release)
+```sh
+pip install xtandard-image   # or: uv add xtandard-image
+```
+
+Not published yet: publishing to PyPI is being set up. Until then, install from the repository: <!-- registry-status: pending -->
 
 ```sh
 uv add "xtandard-image @ git+https://github.com/xantiagoma/xtandard-image#subdirectory=clients/python"
+# or: pip install "xtandard-image @ git+https://github.com/xantiagoma/xtandard-image#subdirectory=clients/python"
 ```
 
-## URL builder
+## Quick start
+
+Build a signed URL with the keys the server was started with:
 
 ```python
 import os
-from xtandard_image import EncryptionKey, SigningKey, imgproxy, xi_source
 
-img = imgproxy(
-    base_url="https://img.example.com",
-    signing=SigningKey(key=os.environ["XI_SIGNING_KEY"], salt=os.environ["XI_SIGNING_SALT"]),
-    encryption=EncryptionKey(key=os.environ["XI_ENCRYPTION_KEY"]),  # only for enc/ sources and PDF passwords
+from xtandard_image import SigningKey, imgproxy
+
+signing = SigningKey(key=os.environ["XI_SIGNING_KEY"], salt=os.environ["XI_SIGNING_SALT"])
+img = imgproxy(base_url="http://localhost:8080", signing=signing)
+
+url = (
+    img.image("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+    .resize("fill", 1200, 630)
+    .gravity("sm")
+    .extension("jpg")
+    .build()
 )
+# http://localhost:8080/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
+```
 
-# Object form: keys are option names or aliases, values are argument tuples or a bare first argument.
-img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm", "q": 80}, extension="webp")
-# https://img.example.com/<signature>/rs:fill:1200:630/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+Ask the server about the source with the HTTP client:
 
-# Fluent form: one method per option name and alias.
-img.image(xi_source("photos", "2026/cat.jpg")).resize("fit", 300, 300).blur(2).extension("png").build()
+```python
+from xtandard_image import Client
 
-# Chained pipelines (/-/): a list of option mappings, or pipeline() in the fluent form.
+with Client("http://localhost:8080", signing=signing) as xi:
+    info = xi.info("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+    print(info["format"], info["width"], info["height"])  # jpeg 7360 4912
+```
+
+Sign URLs on a server only: the signing key signs any URL, and the encryption key decrypts every `enc/` source.
+
+## Usage
+
+### Building URLs
+
+There are two equivalent forms, an options mapping and a fluent chain with one method per option name and alias:
+
+```python
+img = imgproxy(base_url="https://img.example.com")
+
+img.url("s3://photos/cat.jpg", {"resize": ("fill", 300, 400), "gravity": "sm", "quality": 80}, extension="webp")
+img.image("s3://photos/cat.jpg").resize("fill", 300, 400).g("sm").quality(80).extension("webp").build()
+# both: https://img.example.com/insecure/rs:fill:300:400/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+```
+
+The option types (`ProcessingOptions`, `InfoOptions`, `VideoOptions`) are `TypedDict`s generated from the server's catalogue, so pyright and mypy catch an unknown option or a wrong argument. A single argument can be passed bare (`"q": 80`), and `None` leaves an argument empty. The options themselves are documented in [URL dialects §3.2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#32-processing-options--tr).
+
+Builder settings: `separator` (default `:`), `unsigned_signature` (`insecure`, `unsafe` or `_`), and `option_names` (`"short"` by default, `"canonical"` or `"given"`).
+
+### Chained pipelines
+
+A list of option mappings, or `.pipeline()` in the fluent form, writes `/-/` between pipelines:
+
+```python
 img.url("s3://photos/cat.jpg", [{"rs": ("fit", 500, 500)}, {"bl": 2}])
+img.image("s3://photos/cat.jpg").rs("fit", 500, 500).pipeline().bl(2).build()
+```
 
-# Plain or encrypted sources, a password-protected PDF.
-img.url("https://example.com/a b.jpg", {"w": 300}, source_encoding="plain")
-img.url("s3://private/cat.jpg", {"w": 300}, source_encoding="encrypted")
-img.url("s3://docs/report.pdf", {"rs": ("fit", 800, 0)}, pdf_password="s3cret", extension="png")
+### Sources
 
-# /info, /video, HLS and DASH.
-img.info_url("s3://photos/cat.jpg", {"size": True, "format": True, "dimensions": True})
-img.video_url("s3://media/talk.mov", {"rs": ("fill", 640, 360), "vs": 12, "vd": 8}, extension="webm")
-img.video("s3://media/talk.mov").start(12).duration(8).mute(True).extension("mp4").build()
+| `source_encoding` | URL |
+|---|---|
+| `"base64"` (default) | `/…/czM6Ly9waG90b3MvY2F0LmpwZw.webp`; `split_source=16` splits it into segments |
+| `"plain"` | `/…/plain/https://e.com/a%20b.jpg@webp`, escaped for you |
+| `"encrypted"` | `/…/enc/<token>.webp`; needs `encryption` (below) |
+
+Set it on the builder, per call (`source_encoding=`) or per chain (`.encoding("plain")`). `xi_source("photos", "2026/cat.jpg")` writes a named source (`xi://photos/2026/cat.jpg`) and `source_url("s3", "bucket", "cat.jpg")` a storage URL.
+
+### `/info`
+
+```python
+img.info_url("s3://photos/cat.jpg", {"size": True, "format": True})
+img.info("s3://photos/cat.jpg").size(True).format(True).build()
+```
+
+### Video and streams
+
+`/video` URLs use the video option catalogue; the extension is the container (`mp4`, `webm`, `mp3`, `png` for a waveform, …). `stream_url` builds HLS and DASH manifests, whose segments a player fetches without any key:
+
+```python
+img.video("s3://media/talk.mov").rs("fill", 640, 360).vs(12).vd(5).extension("webm").build()
 img.stream_url("s3://media/talk.mov", protocol="hls", renditions=[360, 720], segment_duration=4)
 ```
 
-The option types (`ProcessingOptions`, `InfoOptions`, `VideoOptions`) are `TypedDict`s generated from the server's catalogues. An unknown option, a wrong enum value or a wrong argument type fails type-checking. At run time, it raises `URLBuildError` with a `code` such as `unknown_option`, `invalid_argument` or `invalid_source`.
+The server needs the `full` or `gpl` image for video. Options and containers: [URL dialects §3.8](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123) and [§3.10](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#310-hls-and-dash-streams-wp-126-every-dialect).
 
-## Query dialect
+### Query dialect
 
-```python
-from xtandard_image import SigningKey, query_urls
-
-q = query_urls(base_url="https://img.example.com", signing=SigningKey(key=KEY, salt=SALT))
-q.url("s3://photos/cat.jpg", params={"w": 300, "f": "webp"}, options={"bl": 2})
-# https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&f=webp&o=bl:2&xi_sig=…
-q.video_url("s3://media/talk.mov", {"rs": ("fill", 640, 360), "vs": 1}, extension="webm")
-q.stream_url("s3://media/talk.mov", protocol="hls", renditions=[360])
-q.imaginary_url("resize", "s3://photos/cat.jpg", {"width": 300})
-```
-
-## HTTP client
+`query_urls()` builds `/q/` URLs (native keys plus imgproxy options in `o=`), `/q/video` and imaginary endpoints, signed with `xi_sig`. The server needs `XI_DIALECTS_QUERY_ENABLED=true`.
 
 ```python
-from xtandard_image import AsyncClient, ByteRange, Client, ForbiddenError, SigningKey
+from xtandard_image import query_urls
 
-with Client("http://localhost:8080", signing=SigningKey(key=KEY, salt=SALT)) as xi:
-    xi.healthz()
-    info = xi.info("s3://photos/cat.jpg", {"size": True, "format": True})  # typed InfoResponse
-    res = xi.image("s3://photos/cat.jpg", {"w": 300}, accept="image/avif,image/webp")
-    part = xi.video("s3://media/talk.mov", {"vd": 5}, extension="webm", range=ByteRange(0, 1023))
-    head = xi.video("s3://media/talk.mov", {"vd": 5}, extension="webm", method="HEAD")
-    manifest = xi.stream("s3://media/talk.mov", protocol="hls", renditions=[360, 720])
-    segment = xi.media(manifest.body.splitlines()[-1])  # ticket child URLs need no signing
-
-async with AsyncClient("http://localhost:8080") as xi:
-    info = await xi.info("s3://photos/cat.jpg", {"size": True})
+q = query_urls(base_url="https://img.example.com", signing=signing)
+q.url("s3://photos/cat.jpg", params={"w": 300, "fit": "cover"}, options={"bl": 2}, extension="webp")
+# https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&fit=cover&o=bl:2&format=webp&xi_sig=…
+q.imaginary_url("smartcrop", "s3://photos/cat.jpg", {"width": 300, "height": 300})
 ```
 
-Non-2xx responses raise an `HTTPError` subclass chosen by status:
+`query_method_request(url)` turns such a URL into an HTTP QUERY request, and `Client(query_method=True)` sends them that way. See [URL dialects §4](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary).
 
-- `BadRequestError` (400)
-- `ForbiddenError` (403)
-- `NotFoundError` (404)
-- `NotAcceptableError` (406)
-- `UnprocessableError` (422)
-- `TooManyRequestsError` (429)
-- `ServiceUnavailableError` (503)
-- `GatewayError` (502, 504)
-- `ServerError` (other 5xx)
+### Signing and encryption
 
-Each carries `status`, `kind`, `message` and `request_id` from the server's JSON error envelope. Connection failures raise `TransportError`. Pass `stream=True` to iterate a large body.
-
-### HTTP QUERY (opt-in)
-
-The query dialect also accepts the HTTP QUERY method ([RFC 10008](https://www.rfc-editor.org/rfc/rfc10008), [URL-DIALECTS §4.4](../../docs/URL-DIALECTS.md#44-http-query)): the URL's query goes in the request content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content of a signed QUERY is the query of the signed GET URL. URL builders are unchanged.
+`SigningKey` takes the server's hex key and salt (`XI_SIGNING_KEYS` / `XI_SIGNING_SALTS`, or imgproxy's `IMGPROXY_KEY` / `IMGPROXY_SALT`) and an optional `size`. `EncryptionKey` takes the first `XI_ENCRYPTION_KEYS` entry, for `enc/` sources and password-protected PDFs:
 
 ```python
-from xtandard_image import Client, query_method_request
+from xtandard_image import EncryptionKey
 
-q = query_method_request("https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&xi_sig=…")
-# QueryMethodRequest(method="QUERY", url="https://img.example.com/q/",
-#                    content_type="application/x-www-form-urlencoded", body="url=s3://photos/cat.jpg&w=300&xi_sig=…")
-
-with Client("http://localhost:8080", query_method=True) as xi:  # query_mount="/q" by default
-    xi.media(url)  # QUERY for URLs under /q/, GET for everything else
-
-with Client("http://localhost:8080") as xi:
-    xi.media(url, method="QUERY")  # one call, whatever query_method says
+img = imgproxy(
+    base_url="http://localhost:8080",
+    signing=signing,
+    encryption=EncryptionKey(key=os.environ["XI_ENCRYPTION_KEY"]),
+)
+img.url("s3://private/cat.jpg", {"w": 300}, source_encoding="encrypted")
+img.url("s3://docs/contract.pdf", {"rs": ("fit", 800, 0)}, pdf_password="s3cret")
 ```
 
-It is off by default. The server needs `XI_SERVER_QUERY_METHOD` (on by default), and many CDNs and proxies neither cache nor forward QUERY. HEAD and an explicit `method="GET"` are sent unchanged. A URL without a query, or with a fragment, raises `URLBuildError` with code `invalid_request`.
+Each `enc/` token gets a random IV unless the key has a fixed 16-byte `iv`. The helpers `sign`, `sign_imgproxy_path`, `sign_xi_url`, `sign_xi_query`, `encrypt_source` and `encrypt_pdf_password` are exported too; `sign_xi_url` adds an `xi_sig` to a URL of any other dialect. Schemes: [URL dialects §2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#2-signing-schemes-at-a-glance).
 
-## Coverage
+### HTTP client
 
-| Server feature | Python |
-|---|---|
-| imgproxy processing options (90 with aliases), typed per option | `ProcessingOptions`, fluent methods, every name in the shared builder fixture |
-| `/info` options (35) | `InfoOptions`, `info_url()`, `info()`, `Client.info()` (typed `InfoResponse`) |
-| `/video` options (50) and all 12 containers; `/video` signing | `VideoOptions`, `video_url()`, `video()`, `Client.video()` with Range and HEAD |
-| HLS and DASH (`st`, `sgd`, `sgf:ts`, `@m3u8`, `@mpd`) | `stream_url()` on both builders, `Client.stream()`; ticket child URLs through `Client.media()` |
-| Password-protected PDFs (`pdp`) | `pdf_password=` / `with_pdf_password()`, `encrypt_pdf_password()` |
-| Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `source_encoding`, `split_source`, `xi_source()`, `source_url()` |
-| Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryURLBuilder` (native keys typed as `QueryImageParams`), `sign_xi_url()` |
-| HTTP QUERY on the query dialect (RFC 10008), off by default | `query_method_request()`, `Client(query_method=True, query_mount=…)`, `media(url, method="QUERY")` |
-| `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playground_meta()` |
+`Client` and `AsyncClient` have `healthz`, `readyz`, `info`, `info_at`, `image`, `video`, `stream`, `media` (with `range=` and `method="HEAD"`) and `playground_meta`. They take the builder settings, and an `httpx` client of your own if you want one:
 
-Not covered, on purpose (as in the TypeScript client):
+```python
+from xtandard_image import AsyncClient, ByteRange
 
-- other dialects' URL shapes, which their own SDKs build;
-- imaginary's `sign` scheme;
-- presets-only URLs;
-- the playground's POST API.
-
-## Development
-
-```sh
-cd clients/python
-mise install                 # Python and uv pinned in mise.toml
-task ci                      # = task -d clients/python ci from the root: lint, types, tests, licences, build
-uv run pytest                # conformance + builder fixture + vectors + unit + client tests
-XI_SMOKE_URL=http://127.0.0.1:8080 uv run pytest tests/test_smoke.py   # against the playground demo
+async with AsyncClient("http://localhost:8080", signing=signing) as xi:
+    res = await xi.image("s3://photos/cat.jpg", {"w": 300}, accept="image/avif,image/webp")
+    part = await xi.video("s3://media/talk.mov", {"vd": 5}, extension="webm", range=ByteRange(0, 65535))
 ```
 
-`src/xtandard_image/_generated/` is generated from `clients/spec/spec.json` by `task clients:generate` (`clients/codegen/emitters/python.ts`). Do not edit it.
+### Errors
 
-Runtime dependencies:
+The builders raise `URLBuildError` with a `code` such as `unknown_option`, `invalid_argument` or `invalid_source`. A non-2xx answer raises an `HTTPError` subclass chosen by status (`BadRequestError`, `ForbiddenError`, `NotFoundError`, `TooManyRequestsError`, `ServiceUnavailableError`, …) with the server's `status`, `kind`, `message` and `request_id`; a connection failure raises `TransportError`. All of them derive from `XtandardError`.
 
-- `httpx` (BSD-3-Clause), which brings `certifi` (MPL-2.0, an unmodified CA bundle; a documented exception);
-- `cryptography` (Apache-2.0 OR BSD-3-Clause);
-- `typing-extensions` (PSF-2.0), on Python 3.10 only.
+```python
+from xtandard_image import HTTPError
 
-`scripts/check_licenses.py` checks the full closure.
+try:
+    xi.info("https://example.com/a.jpg")
+except HTTPError as e:
+    print(e.status, e.kind, e.request_id)  # 403 forbidden …
+```
+
+## Compatibility
+
+- Python 3.10 to 3.14. Fully typed (`py.typed`), clean under pyright and mypy in strict mode.
+- Runtime dependencies: `httpx`, `cryptography`, and `typing-extensions` on Python 3.10. Two are exceptions to the project's MIT/BSD/Apache/ISC licence policy: `certifi` (MPL-2.0, an unmodified CA bundle that `httpx` brings) and `typing-extensions` (PSF-2.0).
+- The package version is the server version: `xtandard-image==0.2.1` matches `ghcr.io/xantiagoma/xtandard-image:0.2.1`. Versions follow [ZeroVer](https://0ver.org): a minor bump may break the API, a patch does not.
+
+## Links
+
+- [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme) and [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md)
+- [URL dialects](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md): every option and signing scheme
+- [Playground](https://github.com/xantiagoma/xtandard-image/blob/main/docs/PLAYGROUND.md): build URLs in a browser and copy the Python code
+- [Changelog](https://github.com/xantiagoma/xtandard-image/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/xantiagoma/xtandard-image/blob/main/CONTRIBUTING.md) and [the official clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)
+- [Security policy](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md)
+- Licence: [MIT](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
+
+A personal project, provided as is under the MIT licence: see the [disclaimer](https://github.com/xantiagoma/xtandard-image#disclaimer).
+
+Design: every official client is generated from one spec and passes one conformance fixture ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)).

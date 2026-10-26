@@ -55,7 +55,7 @@ defmodule XtandardImage.MixProject do
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
-        "Changelog" => "#{@source_url}/releases"
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
       },
       files: ~w(lib mix.exs README.md LICENSE .formatter.exs)
     ]

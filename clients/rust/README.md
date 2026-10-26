@@ -2,175 +2,212 @@
 
 # xtandard-image for Rust
 
-The official Rust client of [xtandard-image](https://github.com/xantiagoma/xtandard-image) ([ADR 0013](../../docs/adr/0013-official-clients.md)). It has:
+**Typed URL builder, signing and HTTP client for the xtandard-image server.**
 
-- typed URL builders for the imgproxy dialect (processing, `/info`, `/video`, HLS and DASH) and the query dialect (`/q/`, `/q/video`, imaginary endpoints), in an object form and a fluent form with one method per option name and alias;
-- imgproxy and `xi_sig` signing;
-- `enc/` source and PDF password encryption;
-- async and blocking HTTP clients on [reqwest](https://docs.rs/reqwest) with rustls.
+[![crates.io: pending](https://img.shields.io/badge/crates.io-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-It needs Rust 1.89 or later (edition 2024; `rust-version` in `Cargo.toml`). The crate is `#![forbid(unsafe_code)]`.
+`xtandard-image` is the Rust client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The crate builds and signs the URLs your code sends to the server, and wraps its `/info`, media and health endpoints; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
 
-It is not on crates.io yet. The name `xtandard-image` was free on crates.io on 2026-10-15; the crate will follow the server's release tags.
+```sh
+export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand -hex 32)"
+docker run -d --name xtandard-image -p 8080:8080 \
+  -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
+  -e XI_SIGNING_KEYS="$XI_SIGNING_KEY" -e XI_SIGNING_SALTS="$XI_SIGNING_SALT" \
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+```
 
-**Build and sign URLs on a server.** The signing key signs every URL, and the encryption key decrypts every `enc/` source and PDF password.
+## Install
 
-## Install (from the repository, until the first release)
+```sh
+cargo add xtandard-image
+```
+
+Not published yet: publishing to crates.io is being set up. Until then, install from the repository: <!-- registry-status: pending -->
 
 ```toml
 [dependencies]
 xtandard-image = { git = "https://github.com/xantiagoma/xtandard-image" }
 ```
 
-Cargo finds the crate in `clients/rust` by its name.
+Cargo finds the crate in `clients/rust` by its name. The library is `xtandard_image`.
 
 | Feature | Default | What |
 |---|---|---|
-| `async` | yes | `Client` (reqwest, tokio), with `serde` |
-| `blocking` | no | `blocking::Client` (`reqwest::blocking`), with `serde` |
+| `async` | yes | `Client` (reqwest, tokio) |
+| `blocking` | no | `blocking::Client` (`reqwest::blocking`) |
 | `serde` | with a client | `InfoResponse`, `ErrorResponse` and the other response types |
 
-`default-features = false` leaves the URL builders, signing and encryption: no HTTP stack and no I/O besides the OS random source for encryption IVs. Their dependencies are RustCrypto's `hmac`, `sha2`, `aes` and `cbc`, plus `base64`, `getrandom` and `thiserror`.
+`default-features = false` keeps only the URL builders, signing and encryption: no HTTP stack and no I/O.
 
-## URL builder
+## Quick start
+
+Build a signed URL with the keys the server was started with:
 
 ```rust
-use xtandard_image::{
-    EncryptionKey, ImgproxyUrlBuilder, InfoUrlParams, Options, SigningKey, SourceEncoding, StreamParams,
-    StreamProtocol, UrlParams, VideoUrlParams, processing::ResizeType, xi_source,
-};
+use xtandard_image::{ImgproxyUrlBuilder, SigningKey};
 
-let img = ImgproxyUrlBuilder::new()
-    .base_url("https://img.example.com")
-    .signing(SigningKey::new(std::env::var("XI_SIGNING_KEY")?, std::env::var("XI_SIGNING_SALT")?)?)
-    .encryption(EncryptionKey::new(std::env::var("XI_ENCRYPTION_KEY")?)?); // only for enc/ sources and PDF passwords
+let key = SigningKey::new(std::env::var("XI_SIGNING_KEY")?, std::env::var("XI_SIGNING_SALT")?)?;
+let img = ImgproxyUrlBuilder::new().base_url("http://localhost:8080").signing(key.clone());
 
-// Object form: option names or aliases; a tuple of arguments or a bare first argument.
-let opts = Options::new().set("rs", (ResizeType::Fill, 1200, 630)).set("g", "sm").set("q", 80);
-img.url("s3://photos/cat.jpg", &opts, UrlParams::new().extension("webp"))?;
-// https://img.example.com/<signature>/rs:fill:1200:630/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+let url = img
+    .image("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+    .resize(("fill", 1200, 630))
+    .gravity("sm")
+    .extension("jpg")
+    .build()?;
+// http://localhost:8080/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
+```
 
-// Fluent form: one method per option name and alias.
-img.image(xi_source("photos", "2026/cat.jpg")?).resize((ResizeType::Fit, 300, 300)).blur(2).extension("png").build()?;
+Ask the server about the source with the HTTP client:
 
-// Chained pipelines (/-/): a Vec or array of Options, or pipeline() in the fluent form.
-img.url("s3://photos/cat.jpg", [Options::new().set("rs", ("fit", 500, 500)), Options::new().set("bl", 2)], UrlParams::new())?;
+```rust
+use xtandard_image::{Client, InfoUrlParams, Options};
 
-// Plain or encrypted sources, a password-protected PDF.
-img.url("https://example.com/a b.jpg", Options::new().set("w", 300), UrlParams::new().source_encoding(SourceEncoding::Plain))?;
-img.url("s3://private/cat.jpg", Options::new().set("w", 300), UrlParams::new().source_encoding(SourceEncoding::Encrypted))?;
-img.url("s3://docs/report.pdf", Options::new().set("rs", ("fit", 800, 0)), UrlParams::new().pdf_password("s3cret").extension("png"))?;
+let xi = Client::builder("http://localhost:8080").signing(key).build()?;
+let info = xi
+    .info("https://images.unsplash.com/photo-1506744038136-46273834b3fb", Options::new(), InfoUrlParams::new())
+    .await?;
+println!("{:?} {:?} {:?}", info.format, info.width, info.height); // Some("jpeg") Some(7360) Some(4912)
+```
 
-// /info, /video, HLS and DASH.
-img.info_url("s3://photos/cat.jpg", Options::new().set("size", true).set("format", true), InfoUrlParams::new())?;
-img.video_url("s3://media/talk.mov", Options::new().set("rs", ("fill", 640, 360)).set("vs", 12).set("vd", 8), VideoUrlParams::new().extension("webm"))?;
-img.video("s3://media/talk.mov").start(12).duration(8).mute(true).extension("mp4").build()?;
+Sign URLs on a server only: the signing key signs any URL, and the encryption key decrypts every `enc/` source.
+
+## Usage
+
+### Building URLs
+
+There are two equivalent forms, an `Options` value and a fluent chain with one method per option name and alias:
+
+```rust
+use xtandard_image::{Options, UrlParams, processing::ResizeType};
+
+let opts = Options::new().set("rs", (ResizeType::Fill, 300, 400)).set("g", "sm").set("q", 80);
+img.url("s3://photos/cat.jpg", opts, UrlParams::new().extension("webp"))?;
+img.image("s3://photos/cat.jpg").resize(("fill", 300, 400)).g("sm").quality(80).extension("webp").build()?;
+// both: http://localhost:8080/<signature>/rs:fill:300:400/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+```
+
+An argument is anything that converts into `Arg`: integers, floats, booleans, strings, `None` (an empty argument) and the generated enums (`processing::ResizeType`, …); a tuple, array or `Vec` is an argument list. The options themselves are documented in [URL dialects §3.2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#32-processing-options--tr).
+
+The builder also takes `separator` (default `:`), `unsigned_signature` (`insecure`, `unsafe` or `_`) and `option_names` (short names by default, canonical or as given).
+
+### Chained pipelines
+
+An array or `Vec` of `Options`, or `pipeline()` in the fluent form, writes `/-/` between pipelines:
+
+```rust
+img.url(src, [Options::new().set("rs", ("fit", 500, 500)), Options::new().set("bl", 2)], UrlParams::new())?;
+img.image(src).rs(("fit", 500, 500)).pipeline().bl(2).build()?;
+```
+
+### Sources
+
+| `SourceEncoding` | URL |
+|---|---|
+| `Base64` (default) | `/…/czM6Ly9waG90b3MvY2F0LmpwZw.webp`; `split_source(16)` splits it into segments |
+| `Plain` | `/…/plain/https://example.com/a%20b.jpg@webp`, escaped for you |
+| `Encrypted` | `/…/enc/<token>.webp`; needs `encryption` (below) |
+
+Set it on the builder, per URL (`UrlParams::new().source_encoding(…)`) or per chain. `xi_source("photos", "2026/cat.jpg")?` writes a named source (`xi://photos/2026/cat.jpg`) and `source_url(SourceScheme::S3, "bucket", "cat.jpg")?` a storage URL.
+
+### `/info`
+
+```rust
+img.info_url(src, Options::new().set("size", true).set("format", true), InfoUrlParams::new())?;
+img.info(src).size(true).format(true).build()?;
+```
+
+### Video and streams
+
+`/video` URLs use the video option catalogue; the extension is the container (`mp4`, `webm`, `mp3`, `png` for a waveform, …). `stream_url` builds HLS and DASH manifests, whose segments a player fetches without any key:
+
+```rust
+use xtandard_image::{StreamParams, StreamProtocol};
+
+img.video("s3://media/talk.mov").resize(("fill", 640, 360)).start(12).duration(5).extension("webm").build()?;
 img.stream_url("s3://media/talk.mov", &StreamParams::new(StreamProtocol::Hls).renditions([360, 720]).segment_duration(4))?;
 ```
 
-Arguments are anything that converts into `Arg`: integers, floats (written like JavaScript writes them: `300`, `1.5`, `1e-7`), booleans (`1`/`0`), strings, `None` (an empty argument) and the generated argument enums (`processing::ResizeType`, `processing::GravityType`, `video::AudioCodecCodec`, …). A tuple, array, slice or `Vec` is an argument list. Each catalogue has an `OptionName` enum (`processing::OptionName::Resize`, with `name()`, `short()` and `aliases()`), and the formats, containers, protocols, segment formats, source schemes and error kinds are enums too (`ImageFormat`, `VideoContainer`, `StreamProtocol`, …).
+The server needs the `full` or `gpl` image for video. Options and containers: [URL dialects §3.8](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123) and [§3.10](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#310-hls-and-dash-streams-wp-126-every-dialect).
 
-A URL that cannot be built is an `Error` with one variant per language-neutral code: `Error::UnknownOption`, `InvalidArgument`, `InvalidSource`, `InvalidExtension`, `InvalidSeparator`, `MissingSigning`, `MissingEncryption`, `InvalidKey`, `InvalidPassword`, `InvalidRequest`, `InvalidName`, `InvalidEndpoint` and `InvalidRange`. `err.code()` returns the code (`"unknown_option"`, …).
+### Query dialect
 
-## Query dialect
+`QueryUrlBuilder` builds `/q/` URLs (native keys plus imgproxy options in `o=`), `/q/video` and imaginary endpoints, signed with `xi_sig`. The server needs `XI_DIALECTS_QUERY_ENABLED=true`.
 
 ```rust
-use xtandard_image::{Options, QueryUrlBuilder, QueryUrlParams, StreamParams, StreamProtocol, ImaginaryEndpoint};
+use xtandard_image::{ImaginaryEndpoint, QueryUrlBuilder, QueryUrlParams};
 
 let q = QueryUrlBuilder::new().base_url("https://img.example.com").signing(key);
-q.url("s3://photos/cat.jpg", Options::new().set("bl", 2), QueryUrlParams::new().param("w", 300).param("f", "webp"))?;
-// https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&f=webp&o=bl:2&xi_sig=…
-q.image("s3://photos/cat.jpg").param("w", 300).bl(2).build()?;
-q.video_url("s3://media/talk.mov", Options::new().set("rs", ("fill", 640, 360)).set("vs", 1), Some("webm"))?;
-q.stream_url("s3://media/talk.mov", &StreamParams::new(StreamProtocol::Hls).renditions([360]))?;
-q.imaginary_url(ImaginaryEndpoint::Resize, "s3://photos/cat.jpg", [("width", 300)])?;
+q.url("s3://photos/cat.jpg", Options::new().set("bl", 2), QueryUrlParams::new().param("w", 300).param("fit", "cover").extension("webp"))?;
+// https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&fit=cover&o=bl:2&format=webp&xi_sig=…
+q.imaginary_url(ImaginaryEndpoint::Smartcrop, "s3://photos/cat.jpg", [("width", 300), ("height", 300)])?;
 ```
 
-## HTTP client
+`query_method_request(&url)` turns a query URL into an HTTP QUERY request, and `ClientBuilder::query_method(true)` sends one. See [URL dialects §4](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary).
+
+### Signing and encryption
+
+`SigningKey::new` takes the server's hex key and salt (`XI_SIGNING_KEYS` / `XI_SIGNING_SALTS`, or imgproxy's `IMGPROXY_KEY` / `IMGPROXY_SALT`). `EncryptionKey::new` takes the first `XI_ENCRYPTION_KEYS` entry, for `enc/` sources and password-protected PDFs:
 
 ```rust
-use xtandard_image::{
-    ByteRange, Client, HttpErrorClass, InfoUrlParams, MediaOptions, Options, StreamParams, StreamProtocol, UrlParams,
-    VideoUrlParams,
-};
+use xtandard_image::{EncryptionKey, SourceEncoding};
 
-let xi = Client::builder("http://localhost:8080").signing(key).build()?;
-xi.healthz().await?;
-let info = xi.info("s3://photos/cat.jpg", Options::new().set("size", true).set("format", true), InfoUrlParams::new()).await?; // typed InfoResponse
-let res = xi.image("s3://photos/cat.jpg", Options::new().set("w", 300), UrlParams::new(), &MediaOptions::new().accept("image/avif,image/webp")).await?;
-let part = xi.video("s3://media/talk.mov", Options::new().set("vd", 5), VideoUrlParams::new().extension("webm"), &MediaOptions::new().range(ByteRange::new(0, 1023))).await?;
-let head = xi.video("s3://media/talk.mov", Options::new().set("vd", 5), VideoUrlParams::new().extension("webm"), &MediaOptions::new().head()).await?;
-let manifest = xi.stream("s3://media/talk.mov", &StreamParams::new(StreamProtocol::Hls).renditions([360, 720])).await?;
-let segment = xi.media(manifest.body.lines().last().unwrap(), &MediaOptions::new()).await?; // ticket child URLs need no signing
-
-// Blocking (feature "blocking"): the same methods without .await.
-let xi = xtandard_image::blocking::Client::builder("http://localhost:8080").build()?;
+let img = img.encryption(EncryptionKey::new(std::env::var("XI_ENCRYPTION_KEY")?)?);
+img.url("s3://private/cat.jpg", Options::new().set("w", 300), UrlParams::new().source_encoding(SourceEncoding::Encrypted))?;
+img.url("s3://docs/contract.pdf", Options::new().set("rs", ("fit", 800, 0)), UrlParams::new().pdf_password("s3cret"))?;
 ```
 
-The media methods return the `reqwest::Response` with the body unread: stream it with `chunk()` (async) or `std::io::Read` (blocking). Errors are a `ClientError`:
+Each `enc/` token gets a random IV unless the key has a fixed one. `sign`, `sign_imgproxy_path`, `sign_xi_url`, `sign_xi_query`, `encrypt_source` and `encrypt_pdf_password` are exported too; `sign_xi_url` adds an `xi_sig` to a URL of any other dialect. Schemes: [URL dialects §2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#2-signing-schemes-at-a-glance).
 
-- `ClientError::Http`: a non-2xx status. The `HttpError` carries `status`, `kind`, `message` and `request_id` from the server's JSON error envelope (kind `"unknown"` and the body text otherwise), and `class()` maps the status as the Python client's exception classes do: `BadRequest` (400), `Forbidden` (403), `NotFound` (404), `NotAcceptable` (406), `Unprocessable` (422), `TooManyRequests` (429), `ServiceUnavailable` (503), `Gateway` (502, 504), `Server` (other 5xx).
-- `ClientError::Transport`: no response (connection, TLS, timeout).
-- `ClientError::Build`: the URL could not be built.
-- `ClientError::Decode`: a 2xx body that is not what the endpoint returns.
+### HTTP client
 
-### HTTP QUERY (opt-in)
-
-The query dialect endpoints also accept the HTTP QUERY method (RFC 10008, server toggle `XI_SERVER_QUERY_METHOD`, on by default): the URL's query goes out as `application/x-www-form-urlencoded` content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content is the query of the signed GET URL. It is **off by default** in the client, because many CDNs and proxies neither cache nor forward QUERY.
+`Client` (async, feature `async`) and `blocking::Client` (feature `blocking`) run on reqwest with rustls: `healthz`, `readyz`, `info`, `image`, `video`, `stream`, `media` and `playground_meta`. Media calls return the `reqwest::Response` with the body unread:
 
 ```rust
-use xtandard_image::{MediaOptions, query_method_request};
+use xtandard_image::{ByteRange, MediaOptions, VideoUrlParams};
 
-let url = q.url("s3://photos/cat.jpg", Options::new().set("bl", 2), QueryUrlParams::new().param("w", 300))?;
-let req = query_method_request(&url)?; // QueryMethodRequest { method: "QUERY", url: ".../q/", content_type, body: "url=…&w=300&o=bl:2&xi_sig=…" }
-xi.media(&url, &MediaOptions::new().query()).await?; // this call as QUERY
-let xi = Client::builder("http://localhost:8080").query_method(true).query_mount("/q").build()?;
-xi.media(&url, &MediaOptions::new()).await?; // URLs under the mount go out as QUERY unless the call names a method (HEAD, GET)
+let res = xi.image(src, Options::new().set("w", 300), UrlParams::new(), &MediaOptions::new().accept("image/avif,image/webp")).await?;
+let part = xi.video(src, Options::new().set("vd", 5), VideoUrlParams::new().extension("webm"), &MediaOptions::new().range(ByteRange::new(0, 65535))).await?;
 ```
 
-A URL without a query, or with a fragment, is `Error::InvalidRequest` (`invalid_request`). URL builders are unchanged.
+`build_with(reqwest::Client)` uses a reqwest client of your own, and `xtandard_image::reqwest` re-exports the reqwest version the crate uses.
 
-TLS is rustls with the ring provider and the platform's certificate verifier (no OpenSSL, no aws-lc). `build_with(reqwest::Client)` uses a reqwest client of your own; install a rustls `CryptoProvider` (or configure its TLS) before creating it. `xtandard_image::reqwest` re-exports the reqwest version the crate uses.
+### Errors
 
-## Coverage
+A URL that cannot be built is an `Error` with one variant per error code (`Error::UnknownOption`, `InvalidArgument`, `InvalidSource`, …); `err.code()` returns the code. The client returns a `ClientError`: `Http` for a non-2xx answer, with the server's `status`, `kind` and `request_id`; `Transport` when no answer came; `Build` and `Decode`.
 
-| Server feature | Rust |
-|---|---|
-| imgproxy processing options (90 with aliases) | `Options`, fluent methods, `processing::OptionName`, argument enums, every name in the shared builder fixture |
-| `/info` options (35) | `info_url()`, `info()`, `Client::info()` (typed `InfoResponse`) |
-| `/video` options (52) and all 12 containers; `/video` signing | `video_url()`, `video()`, `Client::video()` with Range and HEAD |
-| HLS and DASH (`st`, `sgd`, `sgf:ts`, `@m3u8`, `@mpd`) | `stream_url()` on both builders, `Client::stream()`; ticket child URLs through `Client::media()` |
-| Password-protected PDFs (`pdp`) | `UrlParams::pdf_password`, `with_pdf_password()`, `encrypt_pdf_password()` |
-| Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `split_source()`, `xi_source()`, `source_url()` |
-| Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder`, `sign_xi_url()` |
-| HTTP QUERY on the query dialect (opt-in, off by default) | `query_method_request()`, `MediaOptions::query()`, `ClientBuilder::query_method()` and `query_mount()` |
-| `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playground_meta()` |
+```rust
+use xtandard_image::ClientError;
 
-Not covered, on purpose (as in the TypeScript and Python clients):
+let err = img.image(src).option("nope", 1).build().unwrap_err();
+assert_eq!(err.code(), "unknown_option");
 
-- other dialects' URL shapes, which their own SDKs build;
-- imaginary's `sign` scheme;
-- presets-only URLs;
-- the playground's POST API.
-
-The typed API cannot express three conformance cases, which the test skips with the reason: a separator longer than one character (`separator` is a `char`), a PDF password on `/video` (`VideoUrlParams` has none) and a negative byte range (`ByteRange` holds `u64`).
-
-## Development
-
-```sh
-cd clients/rust
-mise install                 # Rust and cargo-deny pinned in mise.toml
-task ci                      # = task -d clients/rust ci from the root: fmt, clippy, tests, docs, licences, package
-cargo test --all-features    # conformance + builder fixture + vectors + unit + doc + stand-in HTTP tests
-XI_SMOKE_URL=http://127.0.0.1:8080 cargo test --all-features --test smoke -- --nocapture   # against the playground demo
+match xi.info("https://example.com/a.jpg", Options::new(), InfoUrlParams::new()).await {
+    Err(ClientError::Http(e)) => eprintln!("{} {} {:?}", e.status, e.kind, e.request_id), // 403 forbidden Some("…")
+    other => { /* … */ }
+}
 ```
 
-`src/generated/` is generated from `clients/spec/spec.json` by `task clients:generate` (`clients/codegen/emitters/rust.ts`). Do not edit it; `lib.rs` keeps it out of rustfmt and the pedantic lints.
+## Compatibility
+
+- Rust 1.89 or later (edition 2024). The crate is `#![forbid(unsafe_code)]`. TLS is rustls with the ring provider and the platform's certificate verifier: no OpenSSL.
+- The crate version is the server version: `xtandard-image 0.2.1` matches `ghcr.io/xantiagoma/xtandard-image:0.2.1`. Versions follow [ZeroVer](https://0ver.org): a minor bump may break the API, and a patch does not.
 
 ## Licences
 
-`deny.toml` (`task licenses`, `cargo deny check`) checks the runtime closure of every feature on the supported targets against the ADR 0006 allowlist (MIT, BSD, Apache-2.0, ISC), plus RustSec advisories and banned crates (OpenSSL, native-tls, aws-lc). The documented exception:
+The runtime dependencies are MIT, BSD, Apache-2.0 or ISC, with one exception: `Unicode-3.0`, the permissive licence of the Unicode data tables in the ICU4X crates that `url` uses through reqwest (and of `unicode-ident`). `deny.toml` lists it crate by crate.
 
-- `Unicode-3.0`: the Unicode data tables of the ICU4X crates (`icu_*`, `zerovec`, `yoke`, `tinystr`, …) that `url` uses for IDNA host names through reqwest, and `unicode-ident` (a build-time proc-macro dependency). The licence is permissive and only asks to keep the notice.
+## Links
 
-`ring` is Apache-2.0 AND ISC. wasm32 is not a supported target: there `rustls-platform-verifier` would pull `webpki-root-certs` (CDLA-Permissive-2.0).
+- [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme) and [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md)
+- [URL dialects](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md): every option and signing scheme
+- [Playground](https://github.com/xantiagoma/xtandard-image/blob/main/docs/PLAYGROUND.md): build URLs in a browser and copy the Rust code
+- [Changelog](https://github.com/xantiagoma/xtandard-image/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/xantiagoma/xtandard-image/blob/main/CONTRIBUTING.md) and [the official clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)
+- [Security policy](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md)
+- Licence: [MIT](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
+
+A personal project, provided as is under the MIT licence: see the [disclaimer](https://github.com/xantiagoma/xtandard-image#disclaimer).
+
+Design: every official client is generated from one spec and passes one conformance fixture ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)).

@@ -6,7 +6,6 @@ description: >-
 version: 0.0.0
 repository: https://github.com/xantiagoma/xtandard-image/tree/main/clients/dart
 issue_tracker: https://github.com/xantiagoma/xtandard-image/issues
-documentation: https://github.com/xantiagoma/xtandard-image/blob/main/clients/dart/README.md
 topics:
   - image
   - imgproxy
