@@ -44,4 +44,4 @@ Local libvips on macOS: `brew install vips pkg-config` and `export CGO_CFLAGS_AL
 
 - `docs/AGENT-WORKFLOW.md` is the delivery protocol for every work package. Follow it.
 
-- `docs/HANDOFF.md` is the orchestration handoff (state, stack workflow, `scripts/stack/`). Update it whenever the stack or the in-flight list changes.
+- `.orchestration/HANDOFF.md` (gitignored, local to the maintainer's checkout; helper scripts in `.orchestration/stack/`) is the orchestration handoff. When it exists, read it when resuming and update it whenever the in-flight list changes.

@@ -7,7 +7,7 @@ name: client-java
 # jar. JDK 21 builds (--release 17); the matrix JDK runs the tests. Runs when
 # the client, the shared spec and fixtures, or this workflow change.
 #
-# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# DISABLED while Actions minutes are exhausted (docs/RELEASE.md): the jobs
 # run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
 # Locally: `task -d clients/java ci`.
 on:

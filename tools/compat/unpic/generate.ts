@@ -16,13 +16,15 @@
 //
 //   UNPIC_DIR=/path/to/unpic bun tools/compat/unpic/generate.ts
 //
-// UNPIC_DIR defaults to the .refs clone next to the main checkout
+// UNPIC_DIR defaults to the .refs clone in the main checkout, or $XI_REFS
 // (scripts/clone-refs.sh). unpic is MIT licensed.
 
+import { $ } from "bun";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const unpicDir = process.env.UNPIC_DIR ?? "/Users/santi/Projects/xtandard-image/.refs/unpic";
+const refs = process.env.XI_REFS ?? `${(await $`git rev-parse --path-format=absolute --git-common-dir`.text()).trim()}/../.refs`;
+const unpicDir = process.env.UNPIC_DIR ?? `${refs}/unpic`;
 const outDir = dirname(new URL(import.meta.url).pathname);
 const providersDir = join(unpicDir, "src/providers");
 const { getProviderForUrl } = await import(join(unpicDir, "src/detect.ts"));

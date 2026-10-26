@@ -6,11 +6,12 @@
 //     > internal/dialect/imgproxy/testdata/jscore/corpus.json
 //
 // IMGPROXY_JS_CORE points at a checkout of imgproxy-js-core (default:
-// the .refs clone next to the main checkout, scripts/clone-refs.sh).
+// the .refs clone in the main checkout, or $XI_REFS, scripts/clone-refs.sh).
 
-const root =
-  process.env.IMGPROXY_JS_CORE ??
-  "/Users/santi/Projects/xtandard-image/.refs/imgproxy-js-core";
+import { $ } from "bun";
+
+const refs = process.env.XI_REFS ?? `${(await $`git rev-parse --path-format=absolute --git-common-dir`.text()).trim()}/../.refs`;
+const root = process.env.IMGPROXY_JS_CORE ?? `${refs}/imgproxy-js-core`;
 const { generateUrl, generateImageInfoUrl } = await import(`${root}/src/index.ts`);
 
 type URLType = "plain" | "base64";

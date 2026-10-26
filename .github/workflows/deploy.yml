@@ -4,7 +4,7 @@ name: deploy
 # unit tests, Grafana dashboard, local stack): deploy/scripts/check.sh, which
 # runs every tool from a pinned container image (docs/OPERATIONS.md §8).
 #
-# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the job
+# DISABLED while Actions minutes are exhausted (docs/RELEASE.md): the job
 # runs only when the repository variable XI_DEPLOY_WORKFLOW is "enabled".
 # Locally: `task deploy:check`.
 on:
