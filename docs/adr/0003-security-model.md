@@ -22,4 +22,4 @@ An image proxy fetches attacker-chosen URLs and decodes attacker-supplied bytes 
 
 - Safe defaults cost first-run convenience; dev mode exists for local use and logs a loud warning.
 - Client-side URL generators (unpic) cannot sign; `restricted` mode is the compromise and must be documented prominently.
-- Security features need continuous fuzzing and a published security policy (`SECURITY.md`) before 1.0.
+- Security features need continuous fuzzing and a published security policy (`SECURITY.md`) ~~before 1.0~~. *Amended 2026-10-25 (owner, WP-152):* the project follows ZeroVer, so there is no 1.0 (docs/RELEASE.md "Versioning"). `SECURITY.md` is published before the repository goes public.
