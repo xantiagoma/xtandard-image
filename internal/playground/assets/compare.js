@@ -61,7 +61,7 @@ export async function drawWave(blob, width = 960, height = 240) {
   }
   const canvas = el('canvas', { class: 'wave', width, height, role: 'img', 'aria-label': 'Waveform of the result' });
   const g = canvas.getContext('2d');
-  const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2456c7';
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#0c59fc';
   g.fillStyle = color;
   // One band per channel, like the source's server waveform (wf …:1).
   const chans = [...Array(buf.numberOfChannels).keys()].map((c) => buf.getChannelData(c));
