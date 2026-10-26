@@ -1,12 +1,12 @@
-<!--
-  LOGO PLACEHOLDER: the final <picture> header (docs/assets/*, WP-153) goes here, above the title.
-  Use absolute https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/... URLs,
-  because npm and other mirrors render this file without the docs/ folder. Alt text: xtandard-image.
--->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/lockup-horizontal-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/lockup-horizontal-light.png">
+    <img src="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/lockup-horizontal-light.png" alt="xtandard-image" width="420">
+  </picture>
+</p>
 
 <div align="center">
-
-<h1>xtandard-image</h1>
 
 <p><strong>A self-hosted image and video processing server in Go and libvips.</strong><br/>
 imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, Cloudflare, Thumbor and more. MIT licensed.</p>

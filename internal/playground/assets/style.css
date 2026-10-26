@@ -3,15 +3,23 @@
 
 :root {
   color-scheme: light dark;
+  /* Brand palette (docs/BRAND.md). The accent is the deep blue on light
+     surfaces (5.4:1 on white) and the sky blue on dark ones. */
+  --xi-ink: #0f1215;
+  --xi-blue-deep: #0c59fc;
+  --xi-blue: #156bfa;
+  --xi-blue-mid: #2a95fb;
+  --xi-sky: #2eb9fc;
+  --xi-cyan: #65cefc;
   --bg: #f4f5f7;
   --panel: #ffffff;
   --panel-2: #f7f8fa;
   --fg: #1b1e23;
   --muted: #5b6370;
   --border: #d6d9df;
-  --accent: #2456c7;
+  --accent: var(--xi-blue-deep);
   --accent-fg: #ffffff;
-  --accent-soft: #e5ecfb;
+  --accent-soft: #e4edff;
   --ok: #1d7a3a;
   --warn: #9a5b00;
   --err: #b3261e;
@@ -19,7 +27,7 @@
   --checker-a: #e8e8ec;
   --checker-b: #ffffff;
   --u-sig: #9a5b00;
-  --u-opt: #2456c7;
+  --u-opt: var(--xi-blue-deep);
   --u-src: #1d7a3a;
   --radius: 8px;
   font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -27,15 +35,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #131519;
-    --panel: #1b1e23;
-    --panel-2: #22262c;
+    --bg: var(--xi-ink);
+    --panel: #171a1e;
+    --panel-2: #1e2226;
     --fg: #e6e8eb;
     --muted: #9aa2ad;
-    --border: #353a42;
-    --accent: #7aa2ff;
-    --accent-fg: #0d1220;
-    --accent-soft: #24304d;
+    --border: #31373e;
+    --accent: var(--xi-sky);
+    --accent-fg: var(--xi-ink);
+    --accent-soft: #12304a;
     --ok: #5fc27e;
     --warn: #e0a84a;
     --err: #ff8a80;
@@ -43,22 +51,22 @@
     --checker-a: #2a2e34;
     --checker-b: #1f2227;
     --u-sig: #e0a84a;
-    --u-opt: #8fb0ff;
+    --u-opt: var(--xi-cyan);
     --u-src: #6fd08e;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #131519;
-  --panel: #1b1e23;
-  --panel-2: #22262c;
+  --bg: var(--xi-ink);
+  --panel: #171a1e;
+  --panel-2: #1e2226;
   --fg: #e6e8eb;
   --muted: #9aa2ad;
-  --border: #353a42;
-  --accent: #7aa2ff;
-  --accent-fg: #0d1220;
-  --accent-soft: #24304d;
+  --border: #31373e;
+  --accent: var(--xi-sky);
+  --accent-fg: var(--xi-ink);
+  --accent-soft: #12304a;
   --ok: #5fc27e;
   --warn: #e0a84a;
   --err: #ff8a80;
@@ -66,7 +74,7 @@
   --checker-a: #2a2e34;
   --checker-b: #1f2227;
   --u-sig: #e0a84a;
-  --u-opt: #8fb0ff;
+  --u-opt: var(--xi-cyan);
   --u-src: #6fd08e;
 }
 
@@ -92,8 +100,10 @@ body { margin: 0; background: var(--bg); color: var(--fg); }
   display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; align-items: center; justify-content: space-between;
   padding: .9rem 1.25rem .25rem;
 }
-.top h1 { margin: 0; font-size: 1.3rem; letter-spacing: -.01em; }
-.top h1 span { color: var(--muted); font-weight: 500; }
+.top h1 { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: 1.3rem; letter-spacing: -.01em; }
+.top h1 .logo { width: 2.1rem; height: auto; flex: none; }
+.top h1 b { color: var(--accent); font-weight: inherit; }
+.top h1 .sub { color: var(--muted); font-weight: 500; }
 .meta { margin: .15rem 0 0; color: var(--muted); font-size: .9rem; }
 .top-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 .top-actions select { width: auto; }
@@ -272,17 +282,17 @@ details.group > summary > span:first-child { flex: 1; }
    Token colours keep 4.5:1 or more on --panel-2 in both themes. */
 
 :root {
-  --tk-k: #8a2b9e; --tk-s: #1d6b34; --tk-n: #8f4f00; --tk-c: #5b6370; --tk-t: #2456c7;
+  --tk-k: #8a2b9e; --tk-s: #1d6b34; --tk-n: #8f4f00; --tk-c: #5b6370; --tk-t: #0c59fc;
   --tk-f: #0a6378; --tk-l: #a12c4f; --tk-a: #5c3fb0; --tk-v: #8f4f00;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --tk-k: #d7a6f7; --tk-s: #79d696; --tk-n: #e9b25a; --tk-c: #9aa2ad; --tk-t: #95b5ff;
+    --tk-k: #d7a6f7; --tk-s: #79d696; --tk-n: #e9b25a; --tk-c: #9aa2ad; --tk-t: #7dcffd;
     --tk-f: #6fd3ea; --tk-l: #ffa3b8; --tk-a: #c2b2ff; --tk-v: #f2bb85;
   }
 }
 :root[data-theme="dark"] {
-  --tk-k: #d7a6f7; --tk-s: #79d696; --tk-n: #e9b25a; --tk-c: #9aa2ad; --tk-t: #95b5ff;
+  --tk-k: #d7a6f7; --tk-s: #79d696; --tk-n: #e9b25a; --tk-c: #9aa2ad; --tk-t: #7dcffd;
   --tk-f: #6fd3ea; --tk-l: #ffa3b8; --tk-a: #c2b2ff; --tk-v: #f2bb85;
 }
 .snippet-box summary { cursor: pointer; margin-top: .6rem; }
