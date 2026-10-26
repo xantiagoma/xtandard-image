@@ -2,141 +2,160 @@
 
 # xtandard-image for Ruby
 
-The official Ruby client of [xtandard-image](https://github.com/xantiagoma/xtandard-image) ([ADR 0013](../../docs/adr/0013-official-clients.md)). It has:
+**URL builder, signing and HTTP client for the xtandard-image server, with RBS types and no runtime dependencies.**
 
-- URL builders for the imgproxy dialect (processing, `/info`, `/video`, HLS and DASH) and the query dialect (`/q/`, `/q/video`, imaginary endpoints), as option Hashes or fluent chains with one snake_case method per option name and alias;
-- imgproxy and `xi_sig` signing;
-- `enc/` source and PDF password encryption;
-- an HTTP client on `Net::HTTP` with Range, HEAD and streaming to a block.
+[![RubyGems: pending](https://img.shields.io/badge/RubyGems-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-It needs Ruby 3.2 or later and has **no runtime dependencies** (`openssl`, `net/http` and `json` from the standard library). It ships RBS signatures (`sig/`), generated from the server's catalogues for every option, and is clean under Steep in strict mode.
+`xtandard-image` is the Ruby client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The gem builds and signs the URLs your code sends to the server, and wraps its `/info`, media and health endpoints on `Net::HTTP`; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
 
-It is not on RubyGems yet. The gem `xtandard-image` will follow the server's release tags.
+```sh
+export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand -hex 32)"
+docker run -d --name xtandard-image -p 8080:8080 \
+  -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
+  -e XI_SIGNING_KEYS="$XI_SIGNING_KEY" -e XI_SIGNING_SALTS="$XI_SIGNING_SALT" \
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+```
 
-**Build and sign URLs on a server.** The signing key signs every URL, and the encryption key decrypts every `enc/` source and PDF password.
+## Install
 
-## Install (from the repository, until the first release)
+```sh
+bundle add xtandard-image   # or: gem install xtandard-image
+```
+
+Not published yet: publishing to RubyGems is being set up. Until then, install from the repository: <!-- registry-status: pending -->
 
 ```ruby
 # Gemfile
 gem "xtandard-image", git: "https://github.com/xantiagoma/xtandard-image", glob: "clients/ruby/*.gemspec"
 ```
 
+## Quick start
+
+Build a signed URL with the keys the server was started with:
+
 ```ruby
 require "xtandard_image"
+
+signing = XtandardImage::SigningKey.new(key: ENV.fetch("XI_SIGNING_KEY"), salt: ENV.fetch("XI_SIGNING_SALT"))
+img = XtandardImage.imgproxy(base_url: "http://localhost:8080", signing: signing)
+
+url = img.image("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+         .resize(:fill, 1200, 630).gravity(:sm).extension("jpg").build
+# http://localhost:8080/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
 ```
 
-## URL builder
+Ask the server about the source with the HTTP client:
 
 ```ruby
-key = XtandardImage::SigningKey.new(key: ENV.fetch("XI_SIGNING_KEY"), salt: ENV.fetch("XI_SIGNING_SALT"))
-img = XtandardImage.imgproxy(
-  base_url: "https://img.example.com",
-  signing: key,
-  encryption: XtandardImage::EncryptionKey.new(key: ENV.fetch("XI_ENCRYPTION_KEY")), # only for enc/ sources and PDF passwords
-)
+xi = XtandardImage::Client.new("http://localhost:8080", signing: signing)
+info = xi.info("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+puts info.values_at("format", "width", "height").join(" ") # jpeg 7360 4912
+```
 
-# Hash form: keys are option names or aliases (symbols or strings), values are argument
-# arrays or a bare first argument. nil inside an array is an empty argument; a nil value skips the option.
-img.url("s3://photos/cat.jpg", { rs: [:fill, 1200, 630], g: :sm, q: 80 }, extension: "webp")
-# https://img.example.com/<signature>/rs:fill:1200:630/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+Sign URLs on a server only: the signing key signs any URL, and the encryption key decrypts every `enc/` source.
 
-# Fluent form: one method per option name and alias (min-width is min_width).
-img.image(XtandardImage.xi_source("photos", "2026/cat.jpg")).resize("fit", 300, 300).blur(2).extension("png").build
-img.image("s3://photos/cat.jpg").w(300).to_s # to_s builds too, so chains interpolate
+## Usage
 
-# Chained pipelines (/-/): an Array of Hashes, or pipeline in the fluent form.
+### Building URLs
+
+There are two equivalent forms, an options Hash and a fluent chain with one snake_case method per option name and alias:
+
+```ruby
+img = XtandardImage.imgproxy(base_url: "https://img.example.com")
+
+img.url("s3://photos/cat.jpg", { resize: [:fill, 300, 400], gravity: :sm, quality: 80 }, extension: "webp")
+img.image("s3://photos/cat.jpg").resize(:fill, 300, 400).g(:sm).quality(80).extension("webp").build
+# both: https://img.example.com/insecure/rs:fill:300:400/g:sm/q:80/czM6Ly9waG90b3MvY2F0LmpwZw.webp
+```
+
+Keys are option names or aliases (symbols or strings), values are argument arrays or a bare first argument; `nil` inside an array is an empty argument. `to_s` builds too, so chains interpolate. The RBS signatures in `sig/` type every option, so Steep flags an unknown option or a wrong argument. The options themselves are documented in [URL dialects §3.2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#32-processing-options--tr).
+
+Builder settings: `separator:` (default `:`), `unsigned_signature:` (`insecure`, `unsafe` or `_`), and `option_names:` (`:short` by default, `:canonical` or `:given`).
+
+### Chained pipelines
+
+An Array of Hashes, or `pipeline` in the fluent form, writes `/-/` between pipelines:
+
+```ruby
 img.url("s3://photos/cat.jpg", [{ rs: ["fit", 500, 500] }, { bl: 2 }])
 img.image("s3://photos/cat.jpg").rs("fit", 500, 500).pipeline.bl(2).build
+```
 
-# Plain or encrypted sources, a password-protected PDF.
-img.url("https://example.com/a b.jpg", { w: 300 }, source_encoding: :plain)
-img.url("s3://private/cat.jpg", { w: 300 }, source_encoding: :encrypted)
-img.url("s3://docs/report.pdf", { rs: ["fit", 800, 0] }, pdf_password: "s3cret", extension: "png")
+### Sources
 
-# /info, /video, HLS and DASH.
-img.info_url("s3://photos/cat.jpg", { size: true, format: true, dimensions: true })
-img.video_url("s3://media/talk.mov", { rs: ["fill", 640, 360], vs: 12, vd: 8 }, extension: "webm")
-img.video("s3://media/talk.mov").start(12).duration(8).mute(true).extension("mp4").build
+| `source_encoding:` | URL |
+|---|---|
+| `:base64` (default) | `/…/czM6Ly9waG90b3MvY2F0LmpwZw.webp`; `split_source: 16` splits it into segments |
+| `:plain` | `/…/plain/https://e.com/a%20b.jpg@webp`, escaped for you |
+| `:encrypted` | `/…/enc/<token>.webp`; needs `encryption:` (below) |
+
+Set it on the builder, per call or per chain (`.encoding(:plain)`). `XtandardImage.xi_source("photos", "2026/cat.jpg")` writes a named source (`xi://photos/2026/cat.jpg`) and `XtandardImage.source_url("s3", "bucket", "cat.jpg")` a storage URL.
+
+### `/info`
+
+```ruby
+img.info_url("s3://photos/cat.jpg", { size: true, format: true })
+img.info("s3://photos/cat.jpg").size(true).format(true).build
+```
+
+### Video and streams
+
+`/video` URLs use the video option catalogue; the extension is the container (`mp4`, `webm`, `mp3`, `png` for a waveform, …). `stream_url` builds HLS and DASH manifests, whose segments a player fetches without any key:
+
+```ruby
+img.video("s3://media/talk.mov").rs(:fill, 640, 360).vs(12).vd(5).extension("webm").build
 img.stream_url("s3://media/talk.mov", protocol: :hls, renditions: [360, 720], segment_duration: 4)
 ```
 
-Enumerations (source encodings, protocols, enum arguments) take symbols or strings. Numbers are written as every official client writes them (`300`, `1.5`, `1e-7`), booleans as `1`/`0`.
+The server needs the `full` or `gpl` image for video. Options and containers: [URL dialects §3.8](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123) and [§3.10](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#310-hls-and-dash-streams-wp-126-every-dialect).
 
-A URL that cannot be built raises `XtandardImage::URLBuildError` with a `code` symbol from the shared conformance fixture: `:unknown_option`, `:invalid_argument`, `:invalid_source`, `:invalid_extension`, `:invalid_separator`, `:missing_signing`, `:missing_encryption`, `:invalid_key`, `:invalid_password`, `:invalid_request`, `:invalid_name`, `:invalid_endpoint` or `:invalid_range`.
+### Query dialect
 
-### Types
-
-`sig/` has RBS signatures for the whole API. The generated part (`sig/generated/`) types every option: the options Hash is a record (`processing_options`, `info_options`, `video_options`) whose keys are the option names and aliases, and each fluent method has one overload per argument shape. Under Steep, an unknown option, a wrong enum value or a wrong argument type is a type error:
+`XtandardImage.query_urls` builds `/q/` URLs (native keys plus imgproxy options in `o=`), `/q/video` and imaginary endpoints, signed with `xi_sig`. The server needs `XI_DIALECTS_QUERY_ENABLED=true`.
 
 ```ruby
-img.url("x", { q: "high" })         # Cannot pass a value of type Hash[Symbol, String] as processing_input
-img.image("x").resize(:wrong, "a")  # Cannot find compatible overloading of method `resize`
+q = XtandardImage.query_urls(base_url: "https://img.example.com", signing: signing)
+q.url("s3://photos/cat.jpg", params: { w: 300, fit: "cover" }, options: { bl: 2 }, extension: "webp")
+# https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&fit=cover&o=bl:2&format=webp&xi_sig=…
+q.imaginary_url(:smartcrop, "s3://photos/cat.jpg", { width: 300, height: 300 })
 ```
 
-`Client#info` returns an `info_response` record (string keys, as `JSON.parse` gives them).
+`XtandardImage.query_method_request(url)` turns such a URL into an HTTP QUERY request, and `Client.new(…, query_method: true)` sends them that way. See [URL dialects §4](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary).
 
-## Query dialect
+### Signing and encryption
+
+`SigningKey` takes the server's hex key and salt (`XI_SIGNING_KEYS` / `XI_SIGNING_SALTS`, or imgproxy's `IMGPROXY_KEY` / `IMGPROXY_SALT`) and an optional `size:`. `EncryptionKey` takes the first `XI_ENCRYPTION_KEYS` entry, for `enc/` sources and password-protected PDFs:
 
 ```ruby
-q = XtandardImage.query_urls(base_url: "https://img.example.com", signing: key)
-q.url("s3://photos/cat.jpg", params: { w: 300, f: "webp" }, options: { bl: 2 })
-# https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&f=webp&o=bl:2&xi_sig=…
-q.image("s3://photos/cat.jpg").param(:w, 300).bl(2).build
-q.video_url("s3://media/talk.mov", { rs: ["fill", 640, 360], vs: 1 }, extension: "webm")
-q.stream_url("s3://media/talk.mov", protocol: :hls, renditions: [360])
-q.imaginary_url(:resize, "s3://photos/cat.jpg", { width: 300 })
+img = XtandardImage.imgproxy(
+  base_url: "http://localhost:8080",
+  signing: signing,
+  encryption: XtandardImage::EncryptionKey.new(key: ENV.fetch("XI_ENCRYPTION_KEY")),
+)
+img.url("s3://private/cat.jpg", { w: 300 }, source_encoding: :encrypted)
+img.url("s3://docs/contract.pdf", { rs: ["fit", 800, 0] }, pdf_password: "s3cret")
 ```
 
-## HTTP client
+Each `enc/` token gets a random IV unless the key has a fixed 16-byte `iv:`. The helpers `sign`, `sign_imgproxy_path`, `sign_xi_url`, `sign_xi_query`, `encrypt_source` and `encrypt_pdf_password` are module functions of `XtandardImage`; `sign_xi_url` adds an `xi_sig` to a URL of any other dialect. Schemes: [URL dialects §2](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#2-signing-schemes-at-a-glance).
+
+The [`imgproxy`](https://github.com/imgproxy/imgproxy.rb) gem works against the server too, with the same key and salt; this gem adds `/video`, streams, the query dialect, `xi://` sources and the typed options.
+
+### HTTP client
+
+`XtandardImage::Client` has `healthz`, `readyz`, `info`, `image`, `video`, `stream`, `media` (with `range:` and `method: :head`) and `playground_meta`. A block streams a large body chunk by chunk, and each request opens its own connection, so a client can be shared between threads:
 
 ```ruby
-xi = XtandardImage::Client.new("http://localhost:8080", signing: key, read_timeout: 30)
-xi.healthz
-xi.readyz.ready?                                                  # 503 starting/draining is not an error
-info = xi.info("s3://photos/cat.jpg", { size: true, format: true }) # info["width"], info["format"], …
 res = xi.image("s3://photos/cat.jpg", { w: 300 }, accept: "image/avif,image/webp")
-res.status; res.content_type; res.body                            # body is a binary String
-part = xi.video("s3://media/talk.mov", { vd: 5 }, extension: "webm", range: 0..1023)  # 206
-head = xi.video("s3://media/talk.mov", { vd: 5 }, extension: "webm", method: :head)
-
-# Stream a large body to a block, chunk by chunk (the Response then has no body).
+res.status; res.content_type; res.body
 File.open("talk.webm", "wb") do |f|
   xi.video("s3://media/talk.mov", { vd: 30 }, extension: "webm") { |chunk| f.write(chunk) }
 end
-
-manifest = xi.stream("s3://media/talk.mov", protocol: :hls, renditions: [360, 720])
-segment = xi.media(manifest.body.lines(chomp: true).last) # ticket child URLs need no signing
 ```
 
-`range:` takes a `Range` (`0..1023`, `0...1024`, `500..`), `XtandardImage::ByteSuffix.new(length: 500)` (the last 500 bytes), a Hash (`{ start: 0, end: 1023 }`, `{ suffix: 500 }`) or a header string; `XtandardImage.range_header` formats one. Each request opens its own connection, so a client can be shared between threads.
+### Rails
 
-Errors form one hierarchy under `XtandardImage::Error`:
-
-- `URLBuildError` (with `code`), raised before any request;
-- `TransportError` (connection, TLS, timeout; `cause` is the underlying exception);
-- `HTTPError`, with `status`, `kind`, `message`, `request_id` and `body` from the server's JSON error envelope, and a subclass by status: `BadRequestError` (400), `ForbiddenError` (403), `NotFoundError` (404), `NotAcceptableError` (406), `UnprocessableError` (422), `TooManyRequestsError` (429), `ServerError` (5xx) with `ServiceUnavailableError` (503) and `GatewayError` (502, 504).
-
-### HTTP QUERY (opt-in)
-
-The query dialect also accepts the HTTP QUERY method (RFC 10008): the URL's query moves into the request content, so long option chains, watermark text or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server needs `XI_SERVER_QUERY_METHOD` (on by default).
-
-```ruby
-r = XtandardImage.query_method_request(q.url("s3://photos/cat.jpg", params: { w: 300 }))
-r.http_method  # "QUERY"
-r.url          # "https://img.example.com/q/"
-r.content_type # "application/x-www-form-urlencoded"
-r.body         # "url=s3://photos/cat.jpg&w=300&xi_sig=…"
-
-xi.media(signed_query_url, method: :query)                                  # one call
-xi = XtandardImage::Client.new("http://localhost:8080", query_method: true) # every media URL under query_mount ("/q")
-```
-
-The content is the built URL's query as written, `xi_sig` included (the signature does not cover the method). A URL without a query, or with a fragment, raises `URLBuildError` with code `:invalid_request`. HEAD and an explicit `method: :get` are unchanged. The member is `http_method`, not `method`, so `Object#method` keeps working.
-
-## Rails
-
-Build URLs in a helper. This one mirrors Active Storage's `variant` and `url_for`, and reads the keys from credentials:
+Build URLs in a helper, with the keys in credentials:
 
 ```ruby
 # config/initializers/xtandard_image.rb
@@ -148,76 +167,44 @@ XI = XtandardImage.imgproxy(
   ),
 )
 
-# app/helpers/xtandard_image_helper.rb
+# app/helpers/xtandard_image_helper.rb: <%= image_tag xi_url(user.avatar, rs: [:fill, 256, 256]) %>
 module XtandardImageHelper
-  # <%= image_tag xi_url(user.avatar, rs: [:fill, 256, 256], g: :sm), alt: user.name %>
   def xi_url(attachment, extension: "webp", **options)
-    XI.url(xi_source_for(attachment), options, extension: extension)
-  end
-
-  # <%= image_tag xi_url(photo, w: 800), srcset: xi_srcset(photo, [400, 800, 1600]) %>
-  def xi_srcset(attachment, widths, **options)
-    widths.map { |w| "#{xi_url(attachment, **options, w: w)} #{w}w" }.join(", ")
-  end
-
-  private
-
-  # S3 blobs are read straight from the bucket (the server needs read access; GCS
-  # works the same with gs://<bucket>/<key>); anything else through its signed URL.
-  def xi_source_for(attachment)
     blob = attachment.blob
-    if blob.service.is_a?(ActiveStorage::Service::S3Service)
-      "s3://#{blob.service.bucket.name}/#{blob.key}"
-    else
-      blob.url(expires_in: 1.hour)
-    end
+    source = blob.service.is_a?(ActiveStorage::Service::S3Service) ? "s3://#{blob.service.bucket.name}/#{blob.key}" : blob.url(expires_in: 1.hour)
+    XI.url(source, options, extension: extension)
   end
 end
 ```
 
-A named source (`XI_SOURCES` on the server) keeps bucket names out of URLs: return `XtandardImage.xi_source("uploads", blob.key)` instead.
+### Errors
 
-## The community `imgproxy` gem
+Every error derives from `XtandardImage::Error`. The builders raise `URLBuildError` with a `code` symbol such as `:unknown_option`, `:invalid_argument` or `:invalid_source`. A non-2xx answer raises an `HTTPError` subclass chosen by status (`BadRequestError`, `ForbiddenError`, `NotFoundError`, `TooManyRequestsError`, `ServiceUnavailableError`, …) with the server's `status`, `kind`, `message` and `request_id`; a connection failure raises `TransportError`.
 
-xtandard-image serves imgproxy URLs, so the community [`imgproxy`](https://github.com/imgproxy/imgproxy.rb) gem (`Imgproxy.url_for`, `Imgproxy.extend_active_storage!`, `user.avatar.imgproxy_url(width: 500)`) works against it unchanged: point `IMGPROXY_ENDPOINT` at the server and set `IMGPROXY_KEY` / `IMGPROXY_SALT` (and `IMGPROXY_SIGNATURE_SIZE`, `IMGPROXY_SOURCE_URL_ENCRYPTION_KEY`) to the server's `XI_SIGNING_KEYS`, `XI_SIGNING_SALTS`, `XI_SIGNING_SIZE` and `XI_ENCRYPTION_KEYS`. URLs from both gems are interchangeable, and an app can move one call at a time.
-
-Use this gem for what imgproxy does not have: `/video`, HLS and DASH, the query dialect and `xi_sig`, `xi://` named sources, PDF passwords as xtandard-image writes them, the typed option tables of every server option, and the HTTP client.
-
-## Coverage
-
-| Server feature | Ruby |
-|---|---|
-| imgproxy processing options (90 with aliases), typed per option | `processing_options` record, fluent methods, every name in the shared builder fixture |
-| `/info` options (35) | `info_options`, `info_url`, `info`, `Client#info` (`info_response`) |
-| `/video` options (52) and all 12 containers; `/video` signing | `video_options`, `video_url`, `video`, `Client#video` with Range, HEAD and block streaming |
-| HLS and DASH (`st`, `sgd`, `sgf:ts`, `@m3u8`, `@mpd`) | `stream_url` on both builders, `Client#stream`; ticket child URLs through `Client#media` |
-| Password-protected PDFs (`pdp`) | `pdf_password:` / `with_pdf_password`, `encrypt_pdf_password` |
-| Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `source_encoding:`, `split_source:`, `xi_source`, `source_url` |
-| Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryURLBuilder` (`query_image_params`, `imaginary_params`), `sign_xi_url` |
-| HTTP QUERY on the query dialect (opt-in) | `query_method_request` / `QueryMethodRequest.from_url`, `Client#media(url, method: :query)`, `Client.new(query_method: true, query_mount: …)` |
-| `/healthz`, `/readyz`, playground `api/meta` | `healthz`, `readyz`, `playground_meta` |
-
-Not covered, on purpose (as in the TypeScript client):
-
-- other dialects' URL shapes, which their own SDKs build;
-- imaginary's `sign` scheme;
-- presets-only URLs;
-- the playground's POST API;
-- an async client: Ruby code that wants concurrency runs the thread-safe `Client` from threads or fibers.
-
-## Development
-
-```sh
-cd clients/ruby
-mise install                 # Ruby pinned in mise.toml (Bundler ships with it)
-task ci                      # = task -d clients/ruby ci from the root: lint, types, tests, licences, build
-bundle exec rake test        # conformance + builder fixture + vectors + unit + type usage + client tests
-bundle exec steep check      # strict, on lib/ and test/typecheck/
-XI_SMOKE_URL=http://127.0.0.1:8080 ruby -Ilib -Itest test/smoke_test.rb   # against the playground demo
+```ruby
+begin
+  xi.info("https://example.com/a.jpg")
+rescue XtandardImage::HTTPError => e
+  puts "#{e.status} #{e.kind} #{e.request_id}" # 403 forbidden …
+end
 ```
 
-The development tools (RuboCop, Steep, RBS) need Ruby 3.3 or later; `task test:bare` runs the tests without Bundler on any supported Ruby, as CI does on 3.2. Steep was chosen over Sorbet because RBS is Ruby's own signature format (bundled with Ruby, read by Steep, TypeProf and IDEs), and it needs nothing in the runtime code: Sorbet RBIs would need `sorbet-runtime` or `T::Sig` to be useful.
+## Compatibility
 
-`lib/xtandard_image/generated/` and `sig/generated/` are generated from `clients/spec/spec.json` by `task clients:generate` (`clients/codegen/emitters/ruby.ts`). Do not edit them.
+- Ruby 3.2, 3.3, 3.4 and 4.0. No runtime dependencies: `openssl`, `net/http` and `json` come with Ruby. `json` declares only the Ruby licence, the one exception to the project's MIT/BSD/Apache/ISC licence policy (the Ruby licence offers BSD-2-Clause as an alternative).
+- RBS signatures in `sig/`, clean under Steep in strict mode.
+- The gem version is the server version: `xtandard-image 0.2.1` matches `ghcr.io/xantiagoma/xtandard-image:0.2.1`. Versions follow [ZeroVer](https://0ver.org): a minor bump may break the API, a patch does not.
 
-Runtime dependencies: none. `scripts/check_licenses.rb` checks the standard library gems the code loads (`json`, `net-http`, `net-protocol`, `openssl`, `timeout`, `uri`, `zlib`): all are `Ruby OR BSD-2-Clause` except `json`, which declares only `Ruby`, a documented exception (the Ruby licence offers the 2-clause BSD licence as an alternative).
+## Links
+
+- [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme) and [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md)
+- [URL dialects](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md): every option and signing scheme
+- [Playground](https://github.com/xantiagoma/xtandard-image/blob/main/docs/PLAYGROUND.md): build URLs in a browser and copy the Ruby code
+- [Changelog](https://github.com/xantiagoma/xtandard-image/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/xantiagoma/xtandard-image/blob/main/CONTRIBUTING.md) and [the official clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)
+- [Security policy](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md)
+- Licence: [MIT](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
+
+A personal project, provided as is under the MIT licence: see the [disclaimer](https://github.com/xantiagoma/xtandard-image#disclaimer).
+
+Design: every official client is generated from one spec and passes one conformance fixture ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)).
