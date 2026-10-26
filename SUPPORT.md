@@ -1,6 +1,6 @@
 # Getting help
 
-xtandard-image is maintained by one person in their spare time. There is no paid support and no SLA. These are the places to go, in order:
+xtandard-image is a personal project, maintained by one person in their spare time and provided as is ([disclaimer](README.md#disclaimer)). There is no paid support and no SLA; help is best effort. These are the places to go, in order:
 
 1. **Docs first.** Start with [Getting started](docs/GETTING-STARTED.md). The rest of the documentation:
    - [CONFIG](docs/CONFIG.md): every setting;

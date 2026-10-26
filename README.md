@@ -62,11 +62,11 @@ While the repository is private, the GHCR packages need a `docker login ghcr.io`
 
 ## Why it exists
 
-Hosted image services such as imgix, Cloudinary, ImageKit and Cloudflare Images, and servers such as imgproxy and thumbor, shaped how media is served on the web, and xtandard-image learned a lot from them. Many of their most useful features, though, sit behind paid plans or inside proprietary platforms. xtandard-image's mission is to cover all of an application's media needs in one fully open-source server that you run yourself: its code is MIT licensed, with no paid tier and no features held back.
+Hosted image services such as imgix, Cloudinary, ImageKit and Cloudflare Images, and servers such as imgproxy and thumbor, shaped how media is served on the web, and xtandard-image learned a lot from them. Many of their most useful features, though, sit behind paid plans or inside proprietary platforms. xtandard-image started as a tool for its author's own projects, and its goal is to cover all of an application's media needs in one fully open-source server that you run yourself: its code is MIT licensed, with no paid tier and no features held back.
 
 That is possible because it stands on excellent open-source software: [libvips](https://www.libvips.org/) for images, [FFmpeg](https://ffmpeg.org/) for video and audio, LibRaw, PDFium, ONNX Runtime and many more. Each image lists them, with their licences, in `/opt/xtandard/share/licenses/`, and [NOTICE](NOTICE) credits the open-source work the repository builds on.
 
-It also speaks the URL formats of the services that inspired it, so you can move to it without rewriting your front end. Those compatibility layers follow each service's public URL API and documentation; the server itself is its own code, with its own design. xtandard-image is an independent project, not affiliated with any of the services it is compatible with.
+It also speaks the URL formats of the services that inspired it, so you can move to it without rewriting your front end. Those compatibility layers follow each service's public URL API and documentation. The server has its own code and design; the few parts derived from other open-source projects keep their licences and are credited in [NOTICE](NOTICE). xtandard-image is an independent project, not affiliated with any of the services it is compatible with ([disclaimer](#disclaimer)).
 
 ## Features
 
@@ -168,6 +168,16 @@ Versions follow [ZeroVer](https://0ver.org): they stay at `0.MINOR.PATCH`, and n
 - Prereleases (`0.2.0-rc.1`) never move the `latest`, `slim`, `full` or `gpl` tags, and npm gets them under the `next` dist-tag.
 
 In production, pin an exact version (`:0.2.1-full`) or a digest. The tag table is in [RELEASE](docs/RELEASE.md#versioning).
+
+## Disclaimer
+
+xtandard-image is a personal, non-commercial project. Its author built it for their own use and publishes it in case it is useful to others. It is not a company or a product, and it is not meant to compete with or replace any of the services it is compatible with.
+
+- **Provided as is.** The software comes "as is", without warranty of any kind, as the [MIT licence](LICENSE) states. You use it at your own risk, and you are responsible for how you deploy and operate it, including security, availability, cost and data protection.
+- **No commitments.** There is no support agreement, no SLA and no guaranteed roadmap. Fixes, features and releases happen on a best-effort basis ([SUPPORT.md](SUPPORT.md)). Under [ZeroVer](#status-and-versioning) any minor release may include breaking changes.
+- **Your content, your sources.** You are responsible for having the rights to the media you process and for the sources you allow the server to fetch from, and for complying with the laws and third-party terms that apply to your use.
+- **Third-party software.** The Docker images bundle third-party libraries under their own licences. The `gpl` image includes GPL and AGPL software and patent-encumbered codecs (H.264, HEVC). Checking that they suit your use is your responsibility.
+- **Trademarks.** imgproxy, imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, AWS and the other names in this repository are trademarks of their respective owners. They appear only to describe compatibility (interoperability with their public URL formats). xtandard-image is not affiliated with, endorsed by or sponsored by any of them. Compatibility is best effort and may differ from their services.
 
 ## Contributing, security and licence
 
