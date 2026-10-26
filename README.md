@@ -8,8 +8,6 @@
 
 <div align="center">
 
-<h1>xtandard-image</h1>
-
 <p><strong>A self-hosted image and video processing server in Go and libvips.</strong><br/>
 imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, Cloudflare, Thumbor and more. MIT licensed.</p>
 
