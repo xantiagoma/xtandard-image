@@ -79,7 +79,7 @@ job "xtandard-image" {
       shutdown_delay = "5s"
 
       config {
-        image     = "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim"
+        image     = "ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim"
         ports     = ["http", "admin"]
         readonly_rootfs = true
         cap_drop  = ["ALL"]

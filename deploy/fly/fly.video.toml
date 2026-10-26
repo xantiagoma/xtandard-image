@@ -12,7 +12,7 @@ kill_signal = "SIGTERM"
 kill_timeout = 150
 
 [build]
-  image = "ghcr.io/xantiagoma/xtandard-image:0.1.0-full"
+  image = "ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-full"
 
 [env]
   XI_ROLE = "video"

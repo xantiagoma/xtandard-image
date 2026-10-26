@@ -16,9 +16,13 @@ Every flavour is a multi-arch image (linux/amd64 and linux/arm64) on the same `u
 
 ## 1. Get the image
 
-Use a published image, or build one from a clone. Prereleases are on GHCR (linux/amd64 and linux/arm64): `ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2` (slim), `:0.1.0-rc.2-full` and `:0.1.0-rc.2-gpl`, unsigned, and private packages until the repository is public ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0-rc.2)). To use one instead of building, replace `xtandard-image` with it in the commands below. The moving `latest`, `slim`, `full` and `gpl` tags arrive with the first stable release, `v0.1.0` ([how tags map](RELEASE.md#versioning)).
+The commands on this page use the published image, `ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2` (slim; add `-full` or `-gpl` to the tag for the other flavours). It is multi-arch (linux/amd64 and linux/arm64), unsigned for now, and a private package until the repository is public ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0-rc.2)). The moving `latest`, `slim`, `full` and `gpl` tags arrive with the first stable release, `v0.1.0` ([how tags map](RELEASE.md#versioning)).
 
-To build it, which takes a few minutes (the Dockerfile pulls the prebuilt libvips base image `ghcr.io/xantiagoma/xtandard-image-base`):
+```sh
+docker pull ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+```
+
+To build your own image from a clone instead (a few minutes; the Dockerfile pulls the prebuilt libvips base image `ghcr.io/xantiagoma/xtandard-image-base`), and then use `xtandard-image` in place of the GHCR reference in the commands below:
 
 ```sh
 git clone https://github.com/xantiagoma/xtandard-image.git
@@ -34,7 +38,8 @@ docker build -t xtandard-image .
 `XI_DEV_MODE=true` accepts any public http(s) source. Unsigned URLs are allowed, but only with the widths, heights and qualities of the `restricted` policy (Next.js sizes: 640, 750, 828, 1080, 1200, …; the server logs the list at startup):
 
 ```sh quickstart
-docker run -d --name xtandard-image -p 8080:8080 -e XI_DEV_MODE=true xtandard-image
+docker run -d --name xtandard-image -p 8080:8080 -e XI_DEV_MODE=true \
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
 until curl -fsS http://localhost:8080/healthz >/dev/null; do sleep 1; done
 
 # 640 px wide WebP (imgproxy URL: /<signature>/<options>/plain/<source>@<format>)
@@ -59,7 +64,7 @@ docker run -d --name xtandard-image -p 8080:8080 \
   -e XI_SOURCES_WEB_TYPE=http \
   -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
   -e XI_SIGNING_KEYS -e XI_SIGNING_SALTS \
-  xtandard-image
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
 until curl -fsS http://localhost:8080/healthz >/dev/null; do sleep 1; done
 
 # Signed 1200x630 social card, smart crop
@@ -93,7 +98,7 @@ Both accept a compose file. Create a **Docker Compose** service, paste this, set
 ```yaml quickstart-compose
 services:
   xtandard-image:
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2}
     restart: unless-stopped
     environment:
       XI_SOURCES: web

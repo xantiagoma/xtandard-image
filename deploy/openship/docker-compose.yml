@@ -5,7 +5,7 @@
 # route the domain to port 8080 with its edge proxy.
 services:
   xtandard-image:
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim}
     restart: unless-stopped
     expose: ["8080"]
     environment:

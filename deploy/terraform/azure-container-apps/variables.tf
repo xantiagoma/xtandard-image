@@ -24,7 +24,7 @@ variable "name" {
 variable "image" {
   description = "Container image."
   type        = string
-  default     = "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim"
+  default     = "ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim"
 }
 
 variable "registry_username" {

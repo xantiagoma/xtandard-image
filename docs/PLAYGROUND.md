@@ -5,7 +5,7 @@ A web UI to try every URL dialect, option and source against a running server, a
 ```sh
 docker run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 \
   -e XI_DEV_MODE=true -e XI_ADMIN_ADDR=:9090 -e XI_PLAYGROUND_ENABLED=true \
-  xtandard-image
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
 # then open http://127.0.0.1:9090/_playground/
 ```
 

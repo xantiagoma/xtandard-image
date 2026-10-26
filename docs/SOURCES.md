@@ -532,7 +532,7 @@ To keep secrets out of the environment on these platforms, mount each one as a f
 #   printf %s "$R2_SECRET" > secrets/r2_secret_access_key   # etc.
 services:
   xtandard-image:
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim}
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -871,7 +871,7 @@ mounts = [{ hosts = ["archive-images.example.com"], source = "b2" }]
 # them readable by the container user (uid 65532): chmod 0444 secrets/*.
 services:
   xtandard-image:
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim}
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -1017,7 +1017,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: xtandard-image
-          image: ghcr.io/xantiagoma/xtandard-image:slim
+          image: ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim
           ports:
             - { name: http, containerPort: 8080 }
             - { name: admin, containerPort: 9090 }
@@ -1119,7 +1119,7 @@ xtandard-image config validate --config config.yaml           # file + XI_* envi
 xtandard-image config validate --config config.yaml --no-env  # the file alone (CI)
 xtandard-image config print --config config.yaml              # effective config, secrets redacted
 docker run --rm -v "$PWD/config.yaml:/etc/xtandard/config.yaml:ro" \
-  ghcr.io/xantiagoma/xtandard-image:slim config validate
+  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim config validate
 ```
 
 `config validate` catches syntax, unknown keys, missing allowlists, bad patterns and unreadable secret files. It does not contact the sources: a wrong credential shows up as a 403 or 502 on the first request, with the cause in the server log.
