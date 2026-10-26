@@ -23,6 +23,17 @@ imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, 
 
 xtandard-image resizes, crops, converts and transforms images and videos on the fly, from URLs. Put it behind a CDN, point it at your storage (http origins, S3 and compatible stores, GCS, Azure Blob, local directories, FTP and SFTP), and request what you need in the URL. It aims to offer every imgproxy Pro processing feature for free, to read more input formats than any other server in its category, and to understand the URL formats of the image CDNs you may be moving away from. It ships as ready-to-run Docker images, with nothing to compile.
 
+<p align="center">
+  <a href="docs/PLAYGROUND.md">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/playground-dark.webp">
+      <source media="(prefers-color-scheme: light)" srcset="docs/assets/playground-light.webp">
+      <img src="docs/assets/playground-light.webp" alt="The built-in playground: an imgproxy URL with smart crop and a duotone in the brand colours, source and result side by side" width="900">
+    </picture>
+  </a>
+  <br/><sub>The built-in <a href="docs/PLAYGROUND.md">playground</a>: build a URL in any dialect and compare the source with the result.</sub>
+</p>
+
 ## Quick start
 
 Start a server that may fetch only from `images.unsplash.com`, with the Cloudflare Images URL format enabled next to the imgproxy one:
