@@ -48,7 +48,7 @@ services:
 
   image:
     <<: *xi-common
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
     environment:
       <<: *xi-env
       XI_ROLE: image
@@ -59,7 +59,7 @@ services:
 
   video:
     <<: *xi-common
-    image: ${VIDEO_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-full}
+    image: ${VIDEO_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-full}
     environment:
       <<: *xi-env
       XI_ROLE: video

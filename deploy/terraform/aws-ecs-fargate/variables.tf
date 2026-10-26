@@ -34,7 +34,7 @@ variable "certificate_arn" {
 variable "image" {
   description = "Container image (ghcr.io needs registry_credentials_arn while the package is private)."
   type        = string
-  default     = "ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim"
+  default     = "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim"
 }
 
 variable "registry_credentials_arn" {

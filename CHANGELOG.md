@@ -4,19 +4,28 @@ Each entry covers the server, its Docker images (`slim`, `full`, `gpl` on GHCR) 
 
 ## Unreleased
 
+## v0.1.0 (2026-10-26)
+
+The first stable release, and the first release built, signed and attested by GitHub Actions in the now public repository. It contains everything in rc.1 and rc.2 (below), plus the changes listed here. `latest`, `slim`, `full` and `gpl` on GHCR now point at it.
+
 ### Added
 
+- **Edge images from `main`:** `main`, `main-full`, `main-gpl` and an immutable `sha-<commit>[-flavour]` per commit, verified, signed and attested like releases ([docs/RELEASE.md](docs/RELEASE.md)). (WP-155)
+- **Brand:** logo, palette, favicons and social card ([docs/BRAND.md](docs/BRAND.md)), in the playground, on the site and in every README. (WP-153)
 - **Modal** ([modal.com](https://modal.com)) as a deployment target: `deploy/modal/app.py`, with image and video fleets as separate web endpoints ([docs/DEPLOY.md](docs/DEPLOY.md)). (WP-151)
 - Community files for the move to a public repository: `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md`, issue and pull request templates, `CODEOWNERS` and this changelog. (WP-152)
 
 ### Changed
 
+- The repository and the GHCR packages (app and base images) are **public**. Images are signed with keyless cosign and carry SLSA provenance and SBOM attestations; the rc.2 images were re-published that way.
+- The client READMEs are written for their package registries (absolute links, install, quick start), and the README states the project's goal and a disclaimer. (WP-154)
+- Every example and deploy file pins `0.1.0`.
 - The versioning policy is now written down: ZeroVer, with one version for the images and every client ([docs/RELEASE.md](docs/RELEASE.md#versioning)). (WP-152)
 - The README is now a short guide for users. The walkthrough, the feature comparison and the playground tour moved to [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md), [docs/COMPARISON.md](docs/COMPARISON.md) and [docs/PLAYGROUND.md](docs/PLAYGROUND.md). (WP-152)
 
 ## v0.1.0-rc.2 (2026-10-24)
 
-The second prerelease, built from commit `e6ed827d`. Like rc.1 it was built and verified locally, because GitHub Actions is unavailable for the repository. The images are **not signed** and have **no provenance attestation**. They are private GHCR packages for now.
+The second prerelease, built from commit `a9a493a4`. Like rc.1 it was first built and verified locally, while GitHub Actions was unavailable; on 2026-10-26 the release workflow re-published its images signed and attested, as public GHCR packages.
 
 ### Added
 

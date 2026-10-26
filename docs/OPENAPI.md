@@ -11,7 +11,7 @@ The API reference, the OpenAPI document and the config JSON Schema are served by
 | Browsable API reference (Scalar) | `http://<admin>/docs` | `XI_ADMIN_DOCS=true`, and internet access in the browser (Scalar loads from `cdn.jsdelivr.net`, pinned with SRI). Off, `/docs` answers 404 and points at `/openapi.json` |
 | OpenAPI 3.1 document | `http://<admin>/openapi.json` | Always on |
 | Config file JSON Schema | `http://<admin>/config.schema.json` | Always on ([CONFIG.md](CONFIG.md#config-file-formats-and-schema-adr-0007)) |
-| The same files without a server | `xtandard-image openapi > openapi.json`, `xtandard-image config schema > config.schema.json` (in Docker: `docker run --rm ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2 openapi`) | Nothing |
+| The same files without a server | `xtandard-image openapi > openapi.json`, `xtandard-image config schema > config.schema.json` (in Docker: `docker run --rm ghcr.io/xantiagoma/xtandard-image:0.1.0 openapi`) | Nothing |
 | The committed files | [`internal/apidoc/openapi.json`](../internal/apidoc/openapi.json), [`internal/config/config.schema.json`](../internal/config/config.schema.json) | Nothing |
 | Published copies | `https://xantiagoma.github.io/xtandard-image/api/` (reference), `…/schema/v1/openapi.json`, `…/schema/v1/config.schema.json` | **Not live yet**: GitHub Pages is built (`task pages:build`) but deploys once the owner enables Pages |
 | TypeScript client | [`@xtandard/image`](../clients/typescript/README.md), generated from the document | In the repository; **not on npm** until the first release |
@@ -21,7 +21,7 @@ The admin default `127.0.0.1:9090` is loopback *inside the container*, so publis
 ```sh
 docker run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 \
   -e XI_DEV_MODE=true -e XI_ADMIN_ADDR=:9090 -e XI_ADMIN_DOCS=true \
-  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+  ghcr.io/xantiagoma/xtandard-image:0.1.0
 # open http://127.0.0.1:9090/docs
 curl -s http://127.0.0.1:9090/openapi.json | head -c 200
 curl -s http://127.0.0.1:9090/config.schema.json -o config.schema.json

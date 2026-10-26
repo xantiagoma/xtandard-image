@@ -38,7 +38,7 @@ spec:
       serviceAccountName: xtandard-image@PROJECT.iam.gserviceaccount.com
       containers:
         - name: xtandard-image
-          image: us-docker.pkg.dev/PROJECT/ghcr/xantiagoma/xtandard-image:0.1.0-rc.2-slim
+          image: us-docker.pkg.dev/PROJECT/ghcr/xantiagoma/xtandard-image:0.1.0-slim
           ports:
             - name: http1
               containerPort: 8080

@@ -10,7 +10,7 @@
   "containerDefinitions": [
     {
       "name": "xtandard-image",
-      "image": "ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim",
+      "image": "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim",
       "repositoryCredentials": {
         "credentialsParameter": "arn:aws:secretsmanager:us-east-1:123456789012:secret:ghcr-pull"
       },

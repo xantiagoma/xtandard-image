@@ -10,7 +10,7 @@ import type { Settings } from "./settings";
 const config = new pulumi.Config();
 
 const settings: Settings = {
-  image: config.get("image") ?? "ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim",
+  image: config.get("image") ?? "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim",
   allowedHosts: config.get("allowedHosts") ?? "images.example.com",
   minInstances: config.getNumber("minInstances") ?? 2,
   maxInstances: config.getNumber("maxInstances") ?? 20,

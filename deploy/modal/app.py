@@ -29,7 +29,7 @@ import subprocess
 
 import modal
 
-VERSION = "0.1.0-rc.2"
+VERSION = "0.1.0"
 SERVER = "/usr/local/bin/xtandard-image"
 PORT = 8080
 UID = GID = 65532  # the image's xtandard user; Modal itself runs containers as root

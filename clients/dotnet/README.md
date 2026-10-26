@@ -14,7 +14,7 @@ export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand 
 docker run -d --name xtandard-image -p 8080:8080 \
   -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
   -e XI_SIGNING_KEYS="$XI_SIGNING_KEY" -e XI_SIGNING_SALTS="$XI_SIGNING_SALT" \
-  ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
+  ghcr.io/xantiagoma/xtandard-image:0.1.0
 ```
 
 ## Install

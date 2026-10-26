@@ -12,7 +12,7 @@ config:
     description: "aws (ECS Fargate + ALB + autoscaling), gcp (Cloud Run) or k8s (the Helm chart)"
   image:
     type: string
-    default: ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-slim
+    default: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
   allowedHosts:
     type: string
     default: images.example.com
