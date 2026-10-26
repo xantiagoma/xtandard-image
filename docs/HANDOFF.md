@@ -406,4 +406,10 @@ owner has authorised merging PRs without review.
   - the company email in commit history;
   - enabling private vulnerability reporting;
   - making GHCR public, including the base images that contributors need for compose.dev.yml.
-  **In flight:** WP-153, brand assets (docs/assets, BRAND.md, playground/Pages favicon and palette, client README logos).
+- **Merged 2026-10-26: WP-153** (#160): the brand. It adds SVG masters and rasters in `docs/assets` (rebuilt with
+  `task brand:assets`, checked by `task brand:check`), `docs/BRAND.md` (blue palette, Urbanist wordmark under
+  the OFL), and the favicon and palette in the playground and on Pages. All 12 client READMEs and the root
+  README now show the logo. The owner still has to upload `docs/assets/social.png` as the GitHub social
+  preview. The local `xtandard-base:dev*` images are gone (pruned outside this session), so the demo was
+  rebuilt from the GHCR gpl bases by digest (`scripts/base-image-ref.sh --flavor gpl`) and redeployed from
+  main. No agents in flight.
