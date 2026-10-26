@@ -141,6 +141,8 @@ The image runs anywhere containers run. It declares a `HEALTHCHECK`, runs read-o
 
 ## Documentation
 
+The **[documentation website](https://me.xantiagoma.com/xtandard-image/)** has every document below with search and navigation, plus the [API reference](https://me.xantiagoma.com/xtandard-image/api/). It is built from these Markdown files, which stay the source.
+
 | Document | What it covers |
 |---|---|
 | [Getting started](docs/GETTING-STARTED.md) | Image flavours; dev mode; allowlists and signed URLs; Compose for Dokploy and Coolify |

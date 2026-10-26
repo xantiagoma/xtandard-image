@@ -4,6 +4,10 @@ Each entry covers the server, its Docker images (`slim`, `full`, `gpl` on GHCR) 
 
 ## Unreleased
 
+### Added
+
+- **Documentation website** at [me.xantiagoma.com/xtandard-image](https://me.xantiagoma.com/xtandard-image/): every doc, client README and ADR with search, navigation and light and dark themes, built with Astro Starlight from the Markdown in the repository. The schema URLs and the `/api/` reference are unchanged ([ADR 0015](docs/adr/0015-documentation-site.md)). (WP-156)
+
 ## v0.1.0 (2026-10-26)
 
 The first stable release, and the first release built, signed and attested by GitHub Actions in the now public repository. It contains everything in rc.1 and rc.2 (below), plus the changes listed here. `latest`, `slim`, `full` and `gpl` on GHCR now point at it.
