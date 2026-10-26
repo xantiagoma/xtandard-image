@@ -38,8 +38,9 @@ own origin (CSP `default-src 'self'`).
 ### Where each file goes
 
 - **Root README header**: a `<picture>` that picks `lockup-horizontal-dark.png` or
-  `lockup-horizontal-light.png` with `prefers-color-scheme`, by absolute
-  `raw.githubusercontent.com/.../main/docs/assets/...` URL (READMEs are also rendered off GitHub).
+  `lockup-horizontal-light.png` with `prefers-color-scheme`, by relative `docs/assets/...` path. The
+  root README is not shipped to any registry, and relative paths also render while the repository is
+  private (absolute raw URLs need a token there).
 - **Client READMEs** (`clients/*/README.md`, shipped to npm, PyPI, crates.io, pkg.go.dev, Packagist,
   RubyGems, NuGet, Hex, pub.dev, Maven Central, Swift Package Index): `logo-128.png` by absolute raw
   URL, because registries do not ship `docs/`. HTML `<p align="center"><img …></p>` where the registry
