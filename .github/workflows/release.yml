@@ -248,7 +248,7 @@ jobs:
           artifact-name: sbom-${{ matrix.flavor }}-${{ matrix.arch }}.spdx.json
           upload-release-assets: false
 
-      - uses: sigstore/cosign-installer@v4
+      - uses: sigstore/cosign-installer@v4.1.2
         if: env.PUSH == 'true'
 
       - name: Attest SBOM (cosign keyless)
@@ -336,7 +336,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/index"
           echo "$digest" > "$RUNNER_TEMP/index/$FLAVOR"
 
-      - uses: sigstore/cosign-installer@v4
+      - uses: sigstore/cosign-installer@v4.1.2
 
       - name: Sign (cosign keyless, index and per-arch manifests)
         env:
