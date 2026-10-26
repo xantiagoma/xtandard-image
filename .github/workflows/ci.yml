@@ -229,10 +229,12 @@ jobs:
           XI_IMAGE: ${{ env.XI_ACCEPTANCE_IMAGE || 'xtandard-image:ci' }}
 
   quickstart:
-    # README quick start run verbatim (WP-38): scripts/quickstart.sh extracts
-    # the fenced blocks tagged `sh quickstart-build`, `sh quickstart` and
-    # `yaml quickstart-compose` from README.md and runs them as written,
-    # including the README's own `docker build` (from the GHCR base tags in the
+    # Quick start run verbatim (WP-38): scripts/quickstart.sh extracts the
+    # fenced blocks tagged `sh quickstart-build`, `sh quickstart` and
+    # `yaml quickstart-compose` from README.md and docs/GETTING-STARTED.md
+    # and runs them as written (published app image references swapped for
+    # this build),
+    # including the guide's own `docker build` (from the GHCR base tags in the
     # Dockerfile). Needs outbound HTTPS: the README fetches an Unsplash image.
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci-full')
     name: quickstart (README)

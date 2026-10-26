@@ -1,6 +1,6 @@
 # Configuration
 
-Draft reference. Names are stable once M1 ships; until then they may change in the owning work package.
+Every way to configure xtandard-image, and every setting. A setting is renamed, removed or given a new default only in a minor release, and the [changelog](../CHANGELOG.md) says what to change ([versioning](RELEASE.md#versioning)).
 
 ## Configuration methods
 
@@ -98,7 +98,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 
 ## 2. Environment variable reference
 
-This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS` and the imgix mount, `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH`, the text-watermark settings, `XI_PLAYGROUND_*`, `XI_DETECT_*` and `XI_VIDEO_*`).
+Every variable the server reads is listed here, with its default.
 
 ### Loader
 

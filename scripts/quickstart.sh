@@ -1,6 +1,10 @@
 #!/bin/sh
-# Runs the README quick start verbatim (ROADMAP WP-38): the fenced blocks
-# tagged in the info string are extracted from README.md and executed as-is.
+# Runs the quick start verbatim: the fenced blocks tagged in the info
+# string are extracted from README.md (the 30-second quick start) and
+# docs/GETTING-STARTED.md (the full walkthrough), in that order, and executed
+# as written. In `sh quickstart` blocks, a published app image reference
+# (ghcr.io/xantiagoma/xtandard-image:<tag>) is replaced with the local
+# `xtandard-image`, so CI tests this checkout rather than an old release.
 #
 #   ```sh quickstart-build     run from the repo root, only with
 #                              XI_QUICKSTART_BUILD=1 (CI); `task quickstart`
@@ -17,13 +21,14 @@
 # info.json) by magic bytes, because the README commands only fail on
 # transport or HTTP errors.
 #
-# Usage: scripts/quickstart.sh [README.md]
+# Usage: scripts/quickstart.sh [file.md ...]   (default: README.md docs/GETTING-STARTED.md)
 # Needs docker (compose), curl, openssl, awk and od; the image
 # `xtandard-image` must exist unless XI_QUICKSTART_BUILD=1.
 set -eu
 cd "$(dirname "$0")/.."
 repo="$(pwd)"
-readme="${1:-README.md}"
+if [ "$#" -eq 0 ]; then set -- README.md docs/GETTING-STARTED.md; fi
+readme="$*"
 work="$(mktemp -d)"
 project="xi-quickstart-$$"
 
@@ -51,18 +56,21 @@ fail() {
 # blocks <info string>: the bodies of every fenced block whose info string is
 # exactly <info string>, in order.
 blocks() {
-  awk -v want="$1" '
+  want="$1"
+  shift
+  awk -v want="$want" '
     !open && /^```/ { open = 1; keep = (substr($0, 4) == want); next }
     open && /^```[ \t]*$/ { open = 0; keep = 0; next }
     keep { print }
-  ' "$readme"
+  ' "$@"
 }
 
 magic() { head -c "$2" "$1" | od -An -tx1 | tr -d ' \n'; }
 
-blocks 'sh quickstart-build' >"$work/build.sh"
-blocks 'sh quickstart' >"$work/quickstart.sh"
-blocks 'yaml quickstart-compose' >"$work/compose.yml"
+blocks 'sh quickstart-build' "$@" >"$work/build.sh"
+blocks 'sh quickstart' "$@" |
+  sed -E 's#ghcr\.io/xantiagoma/xtandard-image:[A-Za-z0-9._-]+#xtandard-image#g' >"$work/quickstart.sh"
+blocks 'yaml quickstart-compose' "$@" >"$work/compose.yml"
 [ -s "$work/quickstart.sh" ] || fail "no 'sh quickstart' blocks in $readme"
 [ -s "$work/compose.yml" ] || fail "no 'yaml quickstart-compose' block in $readme"
 

@@ -1,12 +1,14 @@
 # @xtandard/image
 
-Typed URL builder and small fetch client for [xtandard-image](https://github.com/xantiagoma/xtandard-image), the self-hosted image proxy. It builds imgproxy-dialect URLs (images, `/info`, `/video` with audio and HLS/DASH streams) and query dialect URLs (`/q/`, `/q/video`, imaginary endpoints). The image and `/info` URLs work with imgproxy too.
+**The TypeScript client for the [xtandard-image](https://github.com/xantiagoma/xtandard-image) server.** xtandard-image is a self-hosted image and video processing server in Go and libvips. You run it from its Docker images (`ghcr.io/xantiagoma/xtandard-image`, flavours `slim`, `full` and `gpl`), and this package builds and signs the URLs your code sends to it. This package is not the server, and it does not process images itself.
+
+It builds imgproxy-dialect URLs (images, `/info`, `/video` with audio and HLS/DASH streams) and query dialect URLs (`/q/`, `/q/video`, imaginary endpoints), and has a small fetch client for `/info` and the health endpoints. The image and `/info` URLs work with imgproxy too. The server's [README](https://github.com/xantiagoma/xtandard-image#readme) covers how to run it. There are official clients for eleven other languages too ([clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)).
 
 - The option types are generated from the server's OpenAPI document. Every option name and alias is typed, with its argument tuple, so an unknown option or a wrong argument does not compile.
 - Sources can be base64url, `plain/` (escaped for you) or `enc/` (AES-CBC source encryption). An extension suffix is optional.
 - URLs can be signed with the imgproxy scheme (key, salt, signature size), and any URL can take an `xi_sig` query signature.
 - Crypto runs on WebCrypto (`crypto.subtle`), so the package works in Bun, Node 22+, Deno, browsers and workers. It has no runtime dependencies and ships as ESM only.
-- Package versions follow the server's release tags, so `@xtandard/image@X.Y.Z` describes `ghcr.io/xantiagoma/xtandard-image:X.Y.Z`.
+- The package version is the server's version: `@xtandard/image@X.Y.Z` describes `ghcr.io/xantiagoma/xtandard-image:X.Y.Z`. Versions follow [ZeroVer](https://0ver.org) (`0.x`): a minor bump may break options or this API, and a patch does not. Prereleases are on the `next` dist-tag ([versioning](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md#versioning), [changelog](https://github.com/xantiagoma/xtandard-image/blob/main/CHANGELOG.md)).
 
 ```sh
 bun add @xtandard/image   # or npm i / pnpm add / deno add npm:@xtandard/image
@@ -287,4 +289,4 @@ bun run generate && XI_UPDATE_FIXTURES=1 bun test src/fixture.test.ts    # types
 
 ## License
 
-MIT
+MIT. See [LICENSE](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE). Report bugs at [github.com/xantiagoma/xtandard-image/issues](https://github.com/xantiagoma/xtandard-image/issues), and report vulnerabilities as [SECURITY.md](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md) explains.

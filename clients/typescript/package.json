@@ -1,9 +1,12 @@
 {
   "name": "@xtandard/image",
   "version": "0.0.0",
-  "description": "Typed imgproxy-dialect URL builder (signing, source encryption) and fetch client for xtandard-image.",
+  "description": "TypeScript client for the xtandard-image server (self-hosted image and video processing in Go and libvips): typed URL builder with signing and source encryption, and a fetch client.",
   "keywords": [
     "xtandard-image",
+    "xtandard",
+    "image-proxy",
+    "client",
     "imgproxy",
     "image",
     "url",
