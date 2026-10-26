@@ -403,9 +403,16 @@ jobs:
           sha256sum -- * > SHA256SUMS
           flags=""
           if [ "$PRERELEASE" = "true" ]; then flags="--prerelease"; fi
-          # shellcheck disable=SC2086
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes $flags \
-            --notes "$notes" -- *
+          # A re-run for a tag released before (a local release, or a retry) replaces the
+          # assets and the image list; it keeps the release itself.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber -- *
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes "$notes"
+          else
+            # shellcheck disable=SC2086
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes $flags \
+              --notes "$notes" -- *
+          fi
 
   npm:
     # @xtandard/image (clients/typescript, WP-84, ADR 0009 decision 6):
