@@ -53,3 +53,6 @@ clients/*/dist/
 /deploy/terraform/*/terraform.tfstate*
 /deploy/*/cdk.out/
 /deploy/sst/.sst/
+
+# Orchestration notes and helper scripts (local only, not part of the project)
+/.orchestration/

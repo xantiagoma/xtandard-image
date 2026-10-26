@@ -9,7 +9,8 @@ and never push to `main`.
 1. **Read first**: `CLAUDE.md`, `docs/go-standards.md`, the WP row in `docs/ROADMAP.md`, and the
    sections of `docs/ARCHITECTURE.md` / `docs/URL-DIALECTS.md` / `docs/FORMATS.md` /
    `docs/CONFIG.md` the row cites. Reference source lives in
-   `/Users/santi/Projects/xtandard-image/.refs/` (absolute path; it is not in worktrees). `rg` it
+   `.refs/` of the main checkout (gitignored, so not in worktrees: find it with
+   `git rev-parse --path-format=absolute --git-common-dir`, then `../.refs`; `scripts/clone-refs.sh` populates it). `rg` it
    before implementing anything that mirrors imgproxy, imagor, unpic or libvips.
 2. **Branch**: work in your assigned worktree on branch `m1/wp-XX-<slug>` (or `m2/`, `m3/`),
    created from the base branch the orchestrator names (usually `main` or the WP you depend on).
@@ -33,7 +34,7 @@ and never push to `main`.
    accepted as verification. Pure-Go packages may additionally run on the host for speed.
 5. **Commit** in small, focused commits with imperative subjects, and end each message with the
    attribution trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` (the model doing the work; the orchestrator states the current one in each brief).
-   Set the author with `git -c user.name="Santiago Montoya" -c user.email=santi@snappr.com`.
+   Use the commit author the brief gives you.
 6. **Push** `git push -u origin <branch>`. Do not open a PR; the orchestrator does.
 7. **Report** (final message, under 300 words): branch name, files added, how the done criteria in
    the ROADMAP row were verified, benchmarks if the WP asked for them, deviations, and anything the

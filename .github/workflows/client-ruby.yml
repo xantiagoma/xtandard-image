@@ -7,7 +7,7 @@ name: client-ruby
 # Ruby 3.2 runs the tests without Bundler, on its bundled minitest. Runs when
 # the client, the shared spec and fixtures, or this workflow change.
 #
-# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# DISABLED while Actions minutes are exhausted (docs/RELEASE.md): the jobs
 # run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
 # Locally: `task -d clients/ruby ci`.
 on:

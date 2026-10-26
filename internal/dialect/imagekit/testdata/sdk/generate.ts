@@ -12,10 +12,12 @@
 //     > internal/dialect/imagekit/testdata/sdk/corpus.json
 //
 // IMAGEKIT_JS and IMAGEKIT_NODE point at checkouts of the two SDKs
-// (default: the .refs clones next to the main checkout,
+// (default: the .refs clones in the main checkout, or $XI_REFS,
 // scripts/clone-refs.sh).
 
-const refs = "/Users/santi/Projects/xtandard-image/.refs";
+import { $ } from "bun";
+
+const refs = process.env.XI_REFS ?? `${(await $`git rev-parse --path-format=absolute --git-common-dir`.text()).trim()}/../.refs`;
 const jsRoot = process.env.IMAGEKIT_JS ?? `${refs}/imagekit-javascript`;
 const nodeRoot = process.env.IMAGEKIT_NODE ?? `${refs}/imagekit-nodejs`;
 const { buildSrc } = await import(`${jsRoot}/src/index.ts`);

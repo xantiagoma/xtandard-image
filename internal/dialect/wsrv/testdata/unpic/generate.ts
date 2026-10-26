@@ -6,10 +6,13 @@
 //   bun internal/dialect/wsrv/testdata/unpic/generate.ts \
 //     > internal/dialect/wsrv/testdata/unpic/corpus.json
 //
-// UNPIC points at a checkout of unpic (default: the .refs clone next to
-// the main checkout, scripts/clone-refs.sh).
+// UNPIC points at a checkout of unpic (default: the .refs clone in the
+// main checkout or $XI_REFS, scripts/clone-refs.sh).
 
-const root = process.env.UNPIC ?? "/Users/santi/Projects/xtandard-image/.refs/unpic";
+import { $ } from "bun";
+
+const refs = process.env.XI_REFS ?? `${(await $`git rev-parse --path-format=absolute --git-common-dir`.text()).trim()}/../.refs`;
+const root = process.env.UNPIC ?? `${refs}/unpic`;
 const { generate, transform, extract } = await import(`${root}/src/providers/wsrv.ts`);
 
 const img = "https://example.com/image.jpg";
