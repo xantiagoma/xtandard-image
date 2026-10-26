@@ -10,7 +10,7 @@
 #   printf %s "$R2_SECRET" > secrets/r2_secret_access_key   # etc.
 services:
   xtandard-image:
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.1-slim}
     restart: unless-stopped
     ports:
       - "8080:8080"

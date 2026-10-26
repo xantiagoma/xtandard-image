@@ -4,9 +4,17 @@ Each entry covers the server, its Docker images (`slim`, `full`, `gpl` on GHCR) 
 
 ## Unreleased
 
+## v0.1.1 (2026-10-26)
+
+The first release whose npm package, `@xtandard/image`, is published by the release workflow through npm trusted publishing (OIDC), with a provenance attestation.
+
 ### Added
 
 - **Documentation website** at [me.xantiagoma.com/xtandard-image](https://me.xantiagoma.com/xtandard-image/): every doc, client README and ADR with search, navigation and light and dark themes, built with Astro Starlight from the Markdown in the repository. The schema URLs and the `/api/` reference are unchanged ([ADR 0015](docs/adr/0015-documentation-site.md)). (WP-156)
+
+### Changed
+
+- The release workflow publishes `@xtandard/image` to npm from CI (OIDC, provenance) and skips a version that is already published; a non-dry re-run of a tag also updates its GitHub release.
 
 ## v0.1.0 (2026-10-26)
 

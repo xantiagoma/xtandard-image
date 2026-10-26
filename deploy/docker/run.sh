@@ -25,4 +25,4 @@ exec docker run -d --name "${XI_NAME:-xtandard-image}" \
   -e XI_SOURCES_WEB_TYPE=http \
   -e XI_SOURCES_WEB_ALLOW="${XI_SOURCES_WEB_ALLOW:-images.example.com}" \
   -e XI_CACHE_RESULT_STORES=memory \
-  "${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}"
+  "${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.1-slim}"

@@ -16,7 +16,7 @@ kill_timeout = 40
 
 [build]
   # Private GHCR package: `fly auth docker` or deploy with --image from a registry Fly can pull.
-  image = "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim"
+  image = "ghcr.io/xantiagoma/xtandard-image:0.1.1-slim"
 
 [env]
   XI_SOURCES = "web"

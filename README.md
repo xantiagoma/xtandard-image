@@ -42,7 +42,7 @@ Start a server that may fetch only from `images.unsplash.com`, with the Cloudfla
 docker run -d --name xtandard-image -p 8080:8080 \
   -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
   -e XI_DIALECTS_CLOUDFLARE_ENABLED=true \
-  ghcr.io/xantiagoma/xtandard-image:0.1.0
+  ghcr.io/xantiagoma/xtandard-image:0.1.1
 until curl -fsS http://localhost:8080/healthz >/dev/null; do sleep 1; done
 
 # imgproxy URL: fit into 640 px wide, as WebP
@@ -161,7 +161,7 @@ The **[documentation website](https://me.xantiagoma.com/xtandard-image/)** has e
 
 ## Status and versioning
 
-xtandard-image is young and changes fast. The current release is [`v0.1.0`](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0): images built, verified, signed and attested by the release workflow. [CHANGELOG](CHANGELOG.md) says what each version contains, and the [roadmap](docs/ROADMAP.md) lists what is planned.
+xtandard-image is young and changes fast. The current release is [`v0.1.1`](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.1): images built, verified, signed and attested by the release workflow. [CHANGELOG](CHANGELOG.md) says what each version contains, and the [roadmap](docs/ROADMAP.md) lists what is planned.
 
 Versions follow [ZeroVer](https://0ver.org): they stay at `0.MINOR.PATCH`, and no `1.0` is planned. One version, taken from the git tag, covers the three images and every client.
 

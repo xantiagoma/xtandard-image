@@ -37,7 +37,7 @@ body:
     attributes:
       label: Version
       description: The output of `xtandard-image version` in the container, the image tag or digest, or the client's package version.
-      placeholder: "0.1.0 (ghcr.io/xantiagoma/xtandard-image:0.1.0-full)"
+      placeholder: "0.1.0 (ghcr.io/xantiagoma/xtandard-image:0.1.1-full)"
     validations:
       required: true
   - type: dropdown

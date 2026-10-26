@@ -16,10 +16,10 @@ Every flavour is a multi-arch image (linux/amd64 and linux/arm64) on the same `u
 
 ## 1. Get the image
 
-The commands on this page use the published image, `ghcr.io/xantiagoma/xtandard-image:0.1.0` (slim; add `-full` or `-gpl` to the tag for the other flavours). It is multi-arch (linux/amd64 and linux/arm64), public on GHCR, signed and attested ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0)). The moving `latest`, `slim`, `full` and `gpl` tags follow the newest release, and `main`, `main-full` and `main-gpl` the development head ([how tags map](RELEASE.md#versioning)).
+The commands on this page use the published image, `ghcr.io/xantiagoma/xtandard-image:0.1.1` (slim; add `-full` or `-gpl` to the tag for the other flavours). It is multi-arch (linux/amd64 and linux/arm64), public on GHCR, signed and attested ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.1)). The moving `latest`, `slim`, `full` and `gpl` tags follow the newest release, and `main`, `main-full` and `main-gpl` the development head ([how tags map](RELEASE.md#versioning)).
 
 ```sh
-docker pull ghcr.io/xantiagoma/xtandard-image:0.1.0
+docker pull ghcr.io/xantiagoma/xtandard-image:0.1.1
 ```
 
 To build your own image from a clone instead (a few minutes; the Dockerfile pulls the prebuilt libvips base image `ghcr.io/xantiagoma/xtandard-image-base`), and then use `xtandard-image` in place of the GHCR reference in the commands below:
@@ -39,7 +39,7 @@ docker build -t xtandard-image .
 
 ```sh quickstart
 docker run -d --name xtandard-image -p 8080:8080 -e XI_DEV_MODE=true \
-  ghcr.io/xantiagoma/xtandard-image:0.1.0
+  ghcr.io/xantiagoma/xtandard-image:0.1.1
 until curl -fsS http://localhost:8080/healthz >/dev/null; do sleep 1; done
 
 # 640 px wide WebP (imgproxy URL: /<signature>/<options>/plain/<source>@<format>)
@@ -64,7 +64,7 @@ docker run -d --name xtandard-image -p 8080:8080 \
   -e XI_SOURCES_WEB_TYPE=http \
   -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
   -e XI_SIGNING_KEYS -e XI_SIGNING_SALTS \
-  ghcr.io/xantiagoma/xtandard-image:0.1.0
+  ghcr.io/xantiagoma/xtandard-image:0.1.1
 until curl -fsS http://localhost:8080/healthz >/dev/null; do sleep 1; done
 
 # Signed 1200x630 social card, smart crop
@@ -98,7 +98,7 @@ Both accept a compose file. Create a **Docker Compose** service, paste this, set
 ```yaml quickstart-compose
 services:
   xtandard-image:
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.1}
     restart: unless-stopped
     environment:
       XI_SOURCES: web

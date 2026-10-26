@@ -21,7 +21,7 @@ export const branch = "main";
 export const siteOrigin = process.env.SITE_ORIGIN || "https://me.xantiagoma.com";
 export const siteBase = (process.env.SITE_BASE || "/xtandard-image").replace(/\/+$/, "");
 /** The pinned image on the home page. */
-export const image = "ghcr.io/xantiagoma/xtandard-image:0.1.0";
+export const image = "ghcr.io/xantiagoma/xtandard-image:0.1.1";
 
 export type Page = {
   /** Route without the base and without slashes; "" is the home page. */

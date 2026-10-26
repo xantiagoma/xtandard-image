@@ -3,7 +3,7 @@
   "SourceConfiguration": {
     "AutoDeploymentsEnabled": false,
     "ImageRepository": {
-      "ImageIdentifier": "123456789012.dkr.ecr.us-east-1.amazonaws.com/xtandard-image:0.1.0-slim",
+      "ImageIdentifier": "123456789012.dkr.ecr.us-east-1.amazonaws.com/xtandard-image:0.1.1-slim",
       "ImageRepositoryType": "ECR",
       "ImageConfiguration": {
         "Port": "8080",

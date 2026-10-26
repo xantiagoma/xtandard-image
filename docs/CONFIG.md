@@ -606,7 +606,7 @@ Sections 4 to 6 are short starting points. Recipes for every platform (Compose, 
 
 ## 4. Dokploy
 
-Create an **Application** → Docker image `ghcr.io/xantiagoma/xtandard-image:0.1.0-slim`, port 8080, domain via Traefik, and set environment:
+Create an **Application** → Docker image `ghcr.io/xantiagoma/xtandard-image:0.1.1-slim`, port 8080, domain via Traefik, and set environment:
 
 ```
 XI_SIGNING_KEYS=<hex>
@@ -626,7 +626,7 @@ Replicas, rolling updates and a Swarm stack for Dokploy's "Stack" type: [DEPLOY.
 ```yaml
 services:
   xtandard-image:
-    image: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
+    image: ghcr.io/xantiagoma/xtandard-image:0.1.1-slim
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_XI_8080
@@ -673,7 +673,7 @@ spec:
       terminationGracePeriodSeconds: 45
       containers:
         - name: xi
-          image: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
+          image: ghcr.io/xantiagoma/xtandard-image:0.1.1-slim
           ports: [{ containerPort: 8080, name: http }, { containerPort: 9090, name: metrics }]
           envFrom: [{ secretRef: { name: xi-signing } }]
           env:

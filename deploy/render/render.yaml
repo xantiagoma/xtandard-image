@@ -9,7 +9,7 @@ services:
     name: xtandard-image
     runtime: image
     image:
-      url: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
+      url: ghcr.io/xantiagoma/xtandard-image:0.1.1-slim
       # Private GHCR package: create a registry credential named "ghcr" in the dashboard.
       creds:
         fromRegistryCreds:
@@ -48,7 +48,7 @@ services:
     name: xtandard-video
     runtime: image
     image:
-      url: ghcr.io/xantiagoma/xtandard-image:0.1.0-full
+      url: ghcr.io/xantiagoma/xtandard-image:0.1.1-full
       creds:
         fromRegistryCreds:
           name: ghcr

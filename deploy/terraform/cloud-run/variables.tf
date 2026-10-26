@@ -18,7 +18,7 @@ variable "name" {
 variable "image" {
   description = "Image in Artifact Registry (a remote repository mirroring ghcr.io works)."
   type        = string
-  default     = "us-docker.pkg.dev/PROJECT/ghcr/xantiagoma/xtandard-image:0.1.0-slim"
+  default     = "us-docker.pkg.dev/PROJECT/ghcr/xantiagoma/xtandard-image:0.1.1-slim"
 }
 
 variable "min_instances" {

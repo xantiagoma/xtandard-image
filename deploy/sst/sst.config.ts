@@ -22,7 +22,7 @@ export default $config({
 
     const service = new sst.aws.Service("XtandardImage", {
       cluster,
-      image: "ghcr.io/xantiagoma/xtandard-image:0.1.0-slim",
+      image: "ghcr.io/xantiagoma/xtandard-image:0.1.1-slim",
       architecture: "arm64",
       // Workers follow the vCPUs; GOMEMLIMIT follows the memory.
       cpu: "2 vCPU",

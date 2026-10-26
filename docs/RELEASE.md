@@ -184,7 +184,7 @@ Locally, `task pages:build` builds the same site into `dist/pages/` (the output 
 Signature (keyless, GitHub OIDC):
 
 ```sh
-cosign verify ghcr.io/xantiagoma/xtandard-image:0.1.0 \
+cosign verify ghcr.io/xantiagoma/xtandard-image:0.1.1 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --certificate-identity-regexp '^https://github\.com/xantiagoma/xtandard-image/\.github/workflows/release\.yml@'
 ```
@@ -192,7 +192,7 @@ cosign verify ghcr.io/xantiagoma/xtandard-image:0.1.0 \
 SBOM (SPDX, attested per architecture; resolve the platform manifest first):
 
 ```sh
-digest=$(docker buildx imagetools inspect ghcr.io/xantiagoma/xtandard-image:0.1.0 \
+digest=$(docker buildx imagetools inspect ghcr.io/xantiagoma/xtandard-image:0.1.1 \
   --format '{{range .Manifest.Manifests}}{{if eq .Platform.Architecture "arm64"}}{{.Digest}}{{end}}{{end}}')
 cosign verify-attestation --type spdxjson \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
@@ -203,14 +203,14 @@ cosign verify-attestation --type spdxjson \
 SLSA provenance (index and per-arch manifests):
 
 ```sh
-gh attestation verify oci://ghcr.io/xantiagoma/xtandard-image:0.1.0 --owner xantiagoma
+gh attestation verify oci://ghcr.io/xantiagoma/xtandard-image:0.1.1 --owner xantiagoma
 ```
 
 Runtime contract, locally on your architecture:
 
 ```sh
-docker pull ghcr.io/xantiagoma/xtandard-image:0.1.0
-XI_EXPECT_VERSION=0.1.0 scripts/verify-app-image.sh ghcr.io/xantiagoma/xtandard-image:0.1.0
+docker pull ghcr.io/xantiagoma/xtandard-image:0.1.1
+XI_EXPECT_VERSION=0.1.0 scripts/verify-app-image.sh ghcr.io/xantiagoma/xtandard-image:0.1.1
 ```
 
 ## Building and verifying locally
@@ -247,7 +247,7 @@ docker build --target debug --output type=local,dest=dist \
 
 ```sh
 task release:build && task acceptance                                  # this checkout
-XI_IMAGE=ghcr.io/xantiagoma/xtandard-image:0.1.0 scripts/acceptance.sh  # a published image
+XI_IMAGE=ghcr.io/xantiagoma/xtandard-image:0.1.1 scripts/acceptance.sh  # a published image
 XI_ACC_RUN='TestSources|TestInfo' task acceptance                       # go test -run filter
 ```
 

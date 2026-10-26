@@ -34,4 +34,4 @@ resources:
 
 images:
   - name: ghcr.io/xantiagoma/xtandard-image
-    newTag: 0.1.0-slim
+    newTag: 0.1.1-slim

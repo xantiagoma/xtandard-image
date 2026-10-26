@@ -27,7 +27,7 @@ x-xi-common: &xi-common
 services:
   xtandard-image:
     <<: *xi-common
-    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.1-slim}
     ports:
       - "${PUBLISH_PORT:-8080}:8080"
     environment:
