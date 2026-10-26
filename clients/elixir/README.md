@@ -1,3 +1,5 @@
+![xtandard-image](https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/logo-128.png)
+
 # xtandard_image for Elixir
 
 The official Elixir client of [xtandard-image](https://github.com/xantiagoma/xtandard-image) ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)). It has:

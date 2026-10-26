@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/logo-128.png" alt="xtandard-image" width="128" height="128"></p>
+
 # XtandardImage (Swift)
 
 The official Swift client of [xtandard-image](../../README.md): typed URL builders for the imgproxy and query dialects, signing, `enc/` encryption, PDF passwords, and an async `URLSession` client with Range and HEAD. It follows the shared spec and conformance fixture of [`clients/`](../README.md) ([ADR 0013](../../docs/adr/0013-official-clients.md)).
