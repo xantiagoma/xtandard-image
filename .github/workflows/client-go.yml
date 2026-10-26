@@ -6,8 +6,7 @@ name: client-go
 # on every supported Go, the licence check and the build. Runs when the
 # client, the shared spec and fixtures, or this workflow change.
 #
-# DISABLED while Actions minutes are exhausted (docs/RELEASE.md): the jobs
-# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# The jobs run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
 # Locally: `task -d clients/go ci` (or `task clients:test`).
 on:
   push:

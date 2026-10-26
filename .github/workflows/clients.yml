@@ -8,8 +8,7 @@ name: clients
 # not ignore clients/spec/**. Each client has its own workflow
 # (client-<lang>.yml) for its native toolchain.
 #
-# DISABLED while Actions minutes are exhausted (docs/RELEASE.md): the job
-# runs only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# The job runs only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
 # Locally: `task clients:check`.
 on:
   push:

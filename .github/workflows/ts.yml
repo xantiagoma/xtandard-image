@@ -5,8 +5,7 @@ name: ts
 # generated from, or the shared cross-language fixtures change, so a Go PR
 # that changes openapi.json or a golden table also fails here on TS drift.
 #
-# DISABLED: all workflows are off while Actions minutes are exhausted
-# (docs/RELEASE.md). The job only runs when the repository variable
+# The job only runs when the repository variable
 # XI_TS_WORKFLOW is "enabled"; skipped jobs use no minutes. Locally the same
 # steps are `task ts:check`.
 on:

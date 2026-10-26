@@ -9,8 +9,7 @@ name: client-swift
 # client, the root Package.swift, the shared spec and fixtures, or this
 # workflow change.
 #
-# DISABLED while Actions minutes are exhausted (docs/RELEASE.md): the jobs
-# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# The jobs run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
 # Locally: `task -d clients/swift ci` and `task -d clients/swift linux`.
 on:
   push:

@@ -16,7 +16,7 @@ imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, 
   <a href="https://github.com/xantiagoma/xtandard-image/pkgs/container/xtandard-image"><img src="https://img.shields.io/badge/ghcr.io-xantiagoma%2Fxtandard--image-2496ED?logo=docker&logoColor=white" alt="Docker image on GHCR" /></a>
   <a href="https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE"><img src="https://img.shields.io/github/license/xantiagoma/xtandard-image" alt="license: MIT" /></a>
   <a href="https://0ver.org"><img src="https://img.shields.io/badge/versioning-ZeroVer-lightgrey" alt="versioning: ZeroVer" /></a>
-  <!-- TODO(ci-badge): add the ci.yml workflow badge once GitHub Actions is re-enabled on the repository. -->
+  <a href="https://github.com/xantiagoma/xtandard-image/actions/workflows/ci.yml"><img src="https://github.com/xantiagoma/xtandard-image/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
 </p>
 
 </div>
