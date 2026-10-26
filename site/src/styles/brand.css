@@ -1,0 +1,74 @@
+/* The brand palette (docs/BRAND.md) as Starlight's colour properties. Dark is the default
+   theme: ink (#0F1215) background, xi-sky (#2EB9FC) for text accents (8.47:1 on ink).
+   Light: white background, xi-blue-deep (#0C59FC) for text accents (5.45:1 on white). */
+
+:root {
+  --sl-color-accent-low: #0e2a4d;
+  --sl-color-accent: #156bfa; /* xi-blue */
+  --sl-color-accent-high: #2eb9fc; /* xi-sky: links, current page, primary buttons (ink text) */
+
+  --sl-color-white: #fafafa; /* xi-paper */
+  --sl-color-gray-1: #e6edf3;
+  --sl-color-gray-2: #c5ccd3;
+  --sl-color-gray-3: #8b939c; /* xi-slate */
+  --sl-color-gray-4: #4e5459; /* xi-orbit */
+  --sl-color-gray-5: #2b3036;
+  --sl-color-gray-6: #171a1e; /* xi-surface */
+  --sl-color-black: #0f1215; /* xi-ink */
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #e6f4fd; /* xi-mist */
+  --sl-color-accent: #0c59fc; /* xi-blue-deep: links and primary buttons on white */
+  --sl-color-accent-high: #0a3a9e;
+
+  --sl-color-white: #0f1215; /* xi-ink */
+  --sl-color-gray-1: #1b1f24;
+  --sl-color-gray-2: #353b42;
+  --sl-color-gray-3: #57606a;
+  --sl-color-gray-4: #8b939c;
+  --sl-color-gray-5: #d0d7de;
+  --sl-color-gray-6: #eef1f4;
+  --sl-color-gray-7: #f6f8fa;
+  --sl-color-black: #ffffff;
+}
+
+/* Theme-specific images on the home page (the playground screenshot). */
+:root[data-theme="light"] .xi-dark-only,
+:root:not([data-theme="light"]) .xi-light-only {
+  display: none;
+}
+
+.xi-shot {
+  margin: 0 auto 2.5rem;
+  max-width: 64rem;
+}
+.xi-shot img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.75rem;
+  box-shadow: var(--sl-shadow-lg);
+}
+.xi-shot figcaption {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+}
+
+/* The hero icon is a square app icon: keep it a sensible size. */
+.hero > img {
+  max-width: 12rem;
+}
+@media (max-width: 50rem) {
+  .hero > img {
+    max-width: 7rem;
+  }
+}
+
+/* Wide reference tables (CONFIG, URL-DIALECTS, ROADMAP) scroll inside the column. */
+.sl-markdown-content table {
+  display: block;
+  overflow-x: auto;
+}

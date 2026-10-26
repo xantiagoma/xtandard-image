@@ -1,22 +1,29 @@
 #!/bin/sh
-# Assembles the GitHub Pages site (WP-81b, ADR 0007 decision 6) into
-# dist/pages/ (or $1). Used by `task pages:build` and
-# .github/workflows/pages.yml, so the deployed site can be checked locally.
+# Assembles the static, non-Astro files of the GitHub Pages site (WP-81b,
+# ADR 0007 decision 6; WP-156, ADR 0015) into dist/pages-static/ (or $1).
+# The documentation site (site/, `task pages:build`) uses that directory as
+# Astro's publicDir, so these files reach dist/pages/ byte for byte; the
+# verify job of .github/workflows/pages.yml runs this script alone to get
+# the JSON files it compares with the published ones.
 #
-#   index.html                          links every file (docs/pages/index.html)
 #   api/index.html                      Scalar over schema/latest/openapi.json
 #   schema/<major>/config.schema.json   the config schema; <major> comes from its $id
 #   schema/<major>/openapi.json         the OpenAPI document
 #   schema/latest/…                     the same two files
-#   assets/…                            favicons, header lockups, social.png (docs/assets)
+#   assets/…                            every file of docs/assets (favicons, lockups, social.png, screenshots)
 #
 # Deterministic: the output depends only on the committed files (no dates,
 # no commit ids), and it fails when the $id is not a Pages URL of the form
 # .../schema/v<N>/config.schema.json.
 set -eu
+# $1 is relative to the caller's directory; the default to the repository.
+case "${1:-}" in
+"") out= ;;
+/*) out="$1" ;;
+*) out="$(pwd)/$1" ;;
+esac
 cd "$(dirname "$0")/.."
-
-out="${1:-dist/pages}"
+out="${out:-dist/pages-static}"
 base="https://xantiagoma.github.io/xtandard-image/schema/"
 schema="internal/config/config.schema.json"
 openapi="internal/apidoc/openapi.json"
@@ -35,19 +42,13 @@ for dir in "$major" latest; do
   cp "$schema" "$out/schema/$dir/config.schema.json"
   cp "$openapi" "$out/schema/$dir/openapi.json"
 done
-sed "s/@MAJOR@/$major/g" docs/pages/index.html >"$out/index.html"
 cp docs/pages/api/index.html "$out/api/index.html"
-# Brand files the pages reference (favicons, header lockup, og:image; docs/BRAND.md).
+# Brand files and screenshots (favicons, lockups, og:image, the playground
+# screenshots the docs show; docs/BRAND.md).
 mkdir -p "$out/assets"
-for f in favicon.svg favicon.ico apple-touch-icon.png social.png lockup-horizontal-dark.svg lockup-horizontal-light.svg; do
-  cp "docs/assets/$f" "$out/assets/$f"
-done
+cp docs/assets/* "$out/assets/"
 # Serve files as they are (no Jekyll processing of the artifact).
 : >"$out/.nojekyll"
 
-if grep -q '@MAJOR@' "$out/index.html"; then
-  echo "pages-build: unreplaced @MAJOR@ in index.html" >&2
-  exit 1
-fi
 echo "pages-build: $out (schema $major, \$id $id)"
 (cd "$out" && find . -type f | LC_ALL=C sort)

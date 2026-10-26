@@ -1,0 +1,4 @@
+# Written by scripts/sync.ts from the repository's Markdown (ADR 0015); never edit or commit.
+/src/content/docs/
+# Astro's generated types and caches.
+/.astro/

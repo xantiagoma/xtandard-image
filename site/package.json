@@ -1,0 +1,20 @@
+{
+  "name": "xtandard-image-site",
+  "private": true,
+  "type": "module",
+  "description": "The documentation website (GitHub Pages), built from the repository's Markdown with Astro Starlight. Dev tooling only, not a member of the root workspace (ADR 0015).",
+  "license": "MIT",
+  "scripts": {
+    "static": "sh ../scripts/pages-build.sh ../dist/pages-static",
+    "sync": "bun scripts/sync.ts",
+    "dev": "bun run static && bun run sync && bun --bun astro dev --port 4321",
+    "build": "bun run static && bun run sync && bun --bun astro build && bun scripts/check-dist.ts",
+    "preview": "bun --bun astro preview --port 4321",
+    "licenses": "bun ../scripts/check-ts-licenses.ts site"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "0.42.7",
+    "astro": "7.4.2",
+    "starlight-links-validator": "0.27.0"
+  }
+}
