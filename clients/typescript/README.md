@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/logo-128.png" alt="xtandard-image" width="128" height="128"></p>
+
 # @xtandard/image
 
 **The TypeScript client for the [xtandard-image](https://github.com/xantiagoma/xtandard-image) server.** xtandard-image is a self-hosted image and video processing server in Go and libvips. You run it from its Docker images (`ghcr.io/xantiagoma/xtandard-image`, flavours `slim`, `full` and `gpl`), and this package builds and signs the URLs your code sends to it. This package is not the server, and it does not process images itself.
