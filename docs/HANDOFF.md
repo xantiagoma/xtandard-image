@@ -397,3 +397,13 @@ owner has authorised merging PRs without review.
   are errors) and by `deploy/check/modal-run.sh` in `deploy:platforms:run`. Not tested on Modal itself:
   cgroup limits, the stop signal, how the 150 s cap behaves for web_server, and cold start. Open: DEPLOY.md
   says shellcheck runs on `deploy/check/*.sh`, but no task runs it.
+- **Merged 2026-10-26: WP-152** (#159): open-source readiness. Covers ZeroVer (docs/RELEASE.md "Versioning"),
+  a hand-written CHANGELOG.md, community files, issue/PR templates, CODEOWNERS, and a README rewritten for
+  users (long sections moved to docs/COMPARISON.md, GETTING-STARTED.md and PLAYGROUND.md). ROADMAP gains M8.
+  gitleaks found no real secrets. Open for the owner before going public:
+  - what to do with the agent-internal docs (this file has the tailnet IP; AGENT-WORKFLOW has a company
+    email and home path; scripts/stack has a hardcoded cd);
+  - the company email in commit history;
+  - enabling private vulnerability reporting;
+  - making GHCR public, including the base images that contributors need for compose.dev.yml.
+  **In flight:** WP-153, brand assets (docs/assets, BRAND.md, playground/Pages favicon and palette, client README logos).
