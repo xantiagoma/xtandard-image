@@ -1,0 +1,103 @@
+name: Bug report
+description: Something in the server, an image flavour or a client does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security vulnerabilities do not go here.** Report them privately, as [SECURITY.md](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md) explains.
+        Remove signing keys, salts, encryption keys, tokens and private hostnames from everything you paste below.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Server (Docker image)
+        - TypeScript client (@xtandard/image)
+        - Another official client (say which below)
+        - Playground
+        - Deployment files (deploy/, Helm, Kustomize)
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: flavour
+    attributes:
+      label: Image flavour
+      options:
+        - slim
+        - full
+        - gpl
+        - Built from source
+        - Not applicable
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `xtandard-image version` in the container, the image tag or digest, or the client's package version.
+      placeholder: "0.1.0-rc.2 (ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2-full)"
+    validations:
+      required: true
+  - type: dropdown
+    id: dialect
+    attributes:
+      label: URL dialect
+      multiple: true
+      options:
+        - imgproxy
+        - imgproxy /video or HLS/DASH
+        - Query (/q/) or imaginary endpoints
+        - imgix
+        - Cloudinary
+        - ImageKit
+        - Cloudflare Images (/cdn-cgi/image/)
+        - Cloudflare Media (/cdn-cgi/media/)
+        - Bunny
+        - Thumbor
+        - wsrv / weserv
+        - AWS Serverless Image Handler
+        - Another unpic provider (simple)
+        - Not URL-related
+    validations:
+      required: true
+  - type: textarea
+    id: url
+    attributes:
+      label: Request URL
+      description: The URL path and query, or the client call that built it. Replace the signature with `<sig>` if you like. Say where the source lives (http, S3, fs, …) and its format.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The status code and error body, the wrong output, or the crash. Attach the output image if it looks wrong. The `X-Xi-*` debug headers help (`XI_OBSERVABILITY_DEBUG_HEADERS=true`).
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: The relevant `XI_*` variables or config file, with secrets removed. `xtandard-image config print` redacts secrets for you.
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The server's JSON log lines for the request (matched by `request_id`).
+      render: json
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Where it runs, and the CPU architecture.
+      placeholder: "Docker 28 on Ubuntu 24.04, arm64; Kubernetes 1.34; Fly.io; …"
