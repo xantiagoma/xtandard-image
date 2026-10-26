@@ -21,7 +21,7 @@ imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, 
 
 </div>
 
-xtandard-image resizes, crops, converts and transforms images and videos on the fly, from URLs. Put it behind a CDN, point it at your storage (http origins, S3 and compatible stores, GCS, Azure Blob, local directories, FTP and SFTP), and request what you need in the URL. It aims to offer every imgproxy Pro processing feature for free, to read more input formats than any other server in its category, and to understand the URL formats of the image CDNs you may be moving away from. It ships as ready-to-run Docker images, with nothing to compile.
+xtandard-image is an open-source media server meant to cover everything your application does with images, and more and more with video: resize, crop, convert, optimise, watermark, detect, transcode and stream, on the fly, from a URL. Point it at your storage (http origins, S3 and compatible stores, GCS, Azure Blob, local directories, FTP and SFTP), put a CDN in front, and ask for what you need in the URL. It ships as ready-to-run Docker images, with nothing to compile.
 
 <p align="center">
   <a href="docs/PLAYGROUND.md">
@@ -60,9 +60,17 @@ Without signing keys, unsigned URLs are accepted only with common widths, height
 
 While the repository is private, the GHCR packages need a `docker login ghcr.io` first, or you can [build the image](docs/GETTING-STARTED.md#1-get-the-image) from a clone.
 
+## Why it exists
+
+Hosted image services such as imgix, Cloudinary, ImageKit and Cloudflare Images, and servers such as imgproxy and thumbor, shaped how media is served on the web, and xtandard-image learned a lot from them. Many of their most useful features, though, sit behind paid plans or inside proprietary platforms. xtandard-image's mission is to cover all of an application's media needs in one fully open-source server that you run yourself: its code is MIT licensed, with no paid tier and no features held back.
+
+That is possible because it stands on excellent open-source software: [libvips](https://www.libvips.org/) for images, [FFmpeg](https://ffmpeg.org/) for video and audio, LibRaw, PDFium, ONNX Runtime and many more. Each image lists them, with their licences, in `/opt/xtandard/share/licenses/`, and [NOTICE](NOTICE) credits the open-source work the repository builds on.
+
+It also speaks the URL formats of the services that inspired it, so you can move to it without rewriting your front end. Those compatibility layers follow each service's public URL API and documentation; the server itself is its own code, with its own design. xtandard-image is an independent project, not affiliated with any of the services it is compatible with.
+
 ## Features
 
-- **imgproxy URLs work unchanged.** That includes signing, `enc/` encrypted sources, presets, chained pipelines, `/info` and the processing options, the Pro ones included.
+- **imgproxy URLs work unchanged.** That includes signing, `enc/` encrypted sources, presets, chained pipelines, `/info` and every processing option, including the ones imgproxy offers only in its Pro edition.
 - **Many URL dialects.** Besides imgproxy, it serves imgix, Cloudinary, ImageKit, Cloudflare Images, Bunny, Thumbor, wsrv/weserv, AWS Serverless Image Handler, a query-string form with imaginary's endpoints, and the other [unpic](https://unpic.pics/providers/) providers. An unpic `<Image>` set up for one of those CDNs can point at xtandard-image and keep its code.
 - **A long list of formats.** It reads JPEG, PNG, GIF, WebP, AVIF, HEIC, JPEG XL, TIFF, SVG, JPEG 2000 and UltraHDR, camera RAW, PDF, PSD, HDR formats, designer files and dozens of legacy formats. It writes JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP and ICO ([FORMATS](docs/FORMATS.md)).
 - **Video and audio** (`full` and `gpl` images): thumbnails, sprites, GIF to video, transcoding with trim, resize, overlays and audio processing, and HLS/DASH streams.
