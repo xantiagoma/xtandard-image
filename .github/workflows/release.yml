@@ -438,9 +438,9 @@ jobs:
           retention-days: 1
 
   release:
-    # The GitHub release, once every flavor is tagged and signed. Not for
-    # edge images (a push to main).
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    # The GitHub release, once every flavor is tagged and signed: a tag push, or
+    # a non-dry dispatch re-publishing an existing tag. Not for edge images.
+    if: (github.event_name == 'push' && github.ref_type == 'tag') || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
     needs: [meta, merge]
     runs-on: ubuntu-24.04
     permissions:
