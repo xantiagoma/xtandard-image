@@ -22,6 +22,7 @@ on:
       - internal/config/config.schema.json
       - internal/apidoc/openapi.json
       - docs/pages/**
+      - docs/assets/**
       - scripts/pages-build.sh
       - .github/workflows/pages.yml
   workflow_dispatch:
