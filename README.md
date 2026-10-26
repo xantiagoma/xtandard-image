@@ -58,7 +58,7 @@ docker rm -f xtandard-image
 
 Without signing keys, unsigned URLs are accepted only with common widths, heights and qualities (the `restricted` policy: 640, 750, 828, 1080, 1200 and so on; the server logs the list at startup). Any other size, and any host outside the allowlist, gets a 403. For production, add signing keys: [Getting started](docs/GETTING-STARTED.md) walks through signed URLs, `/info` and a Compose service for Dokploy or Coolify.
 
-While the repository is private, the GHCR packages need a `docker login ghcr.io` first, or you can [build the image](docs/GETTING-STARTED.md#1-get-the-image) from a clone.
+The images are public on GHCR; you can also [build the image](docs/GETTING-STARTED.md#1-get-the-image) from a clone.
 
 ## Why it exists
 
@@ -89,7 +89,7 @@ It also speaks the URL formats of the services that inspired it, so you can move
 | `full` | `slim` + FFmpeg (video decode, VP9 and AV1 encode) + ONNX Runtime with face, object and classification models | no GPL code |
 | `gpl` | `full` + H.264 and HEVC encoding, and EPS/PostScript through sandboxed Ghostscript (off by default) | **contains GPL and AGPL software** |
 
-Each flavour is a linux/amd64 and linux/arm64 image at `ghcr.io/xantiagoma/xtandard-image`, tagged `<version>-<flavour>`. If you run or redistribute `gpl`, checking that its licences and the H.264/HEVC patents work for you is your job; if unsure, use `full`. The xtandard-image code itself is MIT. See [Getting started](docs/GETTING-STARTED.md#choose-a-flavour) for the details, and [ADR 0006](docs/adr/0006-license-policy.md) for the licence policy.
+Each flavour is a linux/amd64 and linux/arm64 image at `ghcr.io/xantiagoma/xtandard-image`, tagged `<version>-<flavour>`. Every push to `main` also publishes signed development images, `main-<flavour>` and an immutable `sha-<commit>-<flavour>` per commit ([edge images](docs/RELEASE.md#edge-images)); `latest` stays on the newest stable release. If you run or redistribute `gpl`, checking that its licences and the H.264/HEVC patents work for you is your job; if unsure, use `full`. The xtandard-image code itself is MIT. See [Getting started](docs/GETTING-STARTED.md#choose-a-flavour) for the details, and [ADR 0006](docs/adr/0006-license-policy.md) for the licence policy.
 
 ## Usage
 
