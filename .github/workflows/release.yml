@@ -500,10 +500,11 @@ jobs:
     # published after the image, at the same version, so the package's
     # generated types always describe a released server. npm trusted
     # publishing (OIDC, no token) with a provenance attestation.
-    # NOT ENABLED: runs only with the repository variable XI_NPM_PUBLISH set
-    # to "enabled", once the package's trusted publisher is configured on
-    # npmjs.com (docs/RELEASE.md "npm package").
-    if: vars.XI_NPM_PUBLISH == 'enabled' && github.event_name == 'push' && github.ref_type == 'tag'
+    # Runs when the repository variable XI_NPM_PUBLISH is "enabled": on a tag
+    # push, or on a non-dry dispatch re-publishing an existing tag (a version
+    # already on npm is skipped). The trusted publisher on npmjs.com names this
+    # file, release.yml (docs/RELEASE.md "npm package").
+    if: vars.XI_NPM_PUBLISH == 'enabled' && ((github.event_name == 'push' && github.ref_type == 'tag') || (github.event_name == 'workflow_dispatch' && !inputs.dry_run))
     needs: [meta, merge]
     runs-on: ubuntu-24.04
     permissions:
@@ -511,6 +512,8 @@ jobs:
       id-token: write # npm trusted publishing + provenance
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
@@ -518,6 +521,8 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      - name: npm 11.5.1 or later (trusted publishing)
+        run: npm install -g npm@11 && npm --version
       - run: bun install --frozen-lockfile
       - name: Check (drift, types, tests, licences)
         run: bun run generate:check && bun run typecheck && bun run test && bun run licenses
@@ -534,6 +539,10 @@ jobs:
           VERSION: ${{ needs.meta.outputs.version }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
         run: |
+          if npm view "@xtandard/image@$VERSION" version >/dev/null 2>&1; then
+            echo "@xtandard/image@$VERSION is already on npm; nothing to publish"
+            exit 0
+          fi
           dist_tag=latest
           if [ "$PRERELEASE" = "true" ]; then dist_tag=next; fi
           npm publish "$RUNNER_TEMP/npm/xtandard-image-$VERSION.tgz" \

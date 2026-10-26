@@ -4,7 +4,7 @@
 
 **Typed URL builder, signing and fetch client for the xtandard-image server.**
 
-[![npm: pending](https://img.shields.io/badge/npm-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
+[![npm](https://img.shields.io/npm/v/@xtandard/image)](https://www.npmjs.com/package/@xtandard/image)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
 `@xtandard/image` is the TypeScript client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The package builds and signs the URLs your code sends to the server, and wraps its `/info` and health endpoints; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
@@ -21,14 +21,6 @@ docker run -d --name xtandard-image -p 8080:8080 \
 
 ```sh
 npm i @xtandard/image   # or: bun add / pnpm add / deno add npm:@xtandard/image
-```
-
-Not published yet: publishing to npm is being set up. Until then, install from the repository: <!-- registry-status: pending -->
-
-```sh
-git clone --depth 1 https://github.com/xantiagoma/xtandard-image
-(cd xtandard-image/clients/typescript && bun install && bun pm pack)
-npm i ./xtandard-image/clients/typescript/xtandard-image-0.0.0.tgz
 ```
 
 ## Quick start
