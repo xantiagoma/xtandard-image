@@ -5,18 +5,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>xtandard-image schemas</title>
+<meta name="description" content="Config JSON Schema and OpenAPI document of xtandard-image, the self-hosted image and video processing proxy.">
+<link rel="icon" href="assets/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#0F1215">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="xtandard-image">
+<meta property="og:title" content="xtandard-image schemas">
+<meta property="og:description" content="Config JSON Schema and OpenAPI document of xtandard-image, the self-hosted image and video processing proxy.">
+<meta property="og:url" content="https://xantiagoma.github.io/xtandard-image/">
+<meta property="og:image" content="https://xantiagoma.github.io/xtandard-image/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="xtandard-image: self-hosted image and video processing proxy">
+<meta name="twitter:card" content="summary_large_image">
 <style>
-:root { --bg: #fff; --fg: #1b1f24; --muted: #57606a; --line: #d0d7de; --code: #f6f8fa; --link: #0969da; }
+:root { --bg: #fff; --fg: #1b1f24; --muted: #57606a; --line: #d0d7de; --code: #f6f8fa; --link: #0c59fc; }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #30363d; --code: #161b22; --link: #4493f8; }
+  :root { --bg: #0f1215; --fg: #e6edf3; --muted: #9198a1; --line: #30363d; --code: #161b22; --link: #2eb9fc; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width: 52rem; margin: 0 auto; padding: 2rem 16px 4rem; }
 h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+h1.logo { margin-bottom: 1rem; line-height: 0; }
+h1.logo img { max-width: 100%; height: auto; }
 h2 { font-size: 1.15rem; margin: 2rem 0 .5rem; }
 p { margin: .5rem 0; }
 .lede { color: var(--muted); }
@@ -32,7 +49,10 @@ pre { padding: .75rem 1rem; overflow-x: auto; }
 </head>
 <body>
 <main>
-<h1>xtandard-image</h1>
+<h1 class="logo"><picture>
+  <source srcset="assets/lockup-horizontal-dark.svg" media="(prefers-color-scheme: dark)">
+  <img src="assets/lockup-horizontal-light.svg" alt="xtandard-image" width="320" height="37">
+</picture></h1>
 <p class="lede">Machine-readable contracts of the <a href="https://github.com/xantiagoma/xtandard-image">xtandard-image</a> image processing proxy: the JSON Schema of its config file and the OpenAPI 3.1 document of its HTTP API.</p>
 
 <h2>Files</h2>

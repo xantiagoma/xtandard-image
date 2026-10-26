@@ -146,6 +146,14 @@ tasks:
     desc: "Assemble the GitHub Pages site (config schema, OpenAPI, index, Scalar page) into dist/pages/, as .github/workflows/pages.yml deploys it"
     cmds: [sh scripts/pages-build.sh]
 
+  brand:assets:
+    desc: "Rebuild the brand rasters in docs/assets/ from their SVG masters and copy the favicons into the playground (docs/BRAND.md; needs rsvg-convert, magick, optionally oxipng)"
+    cmds: [sh scripts/brand-assets.sh]
+
+  brand:check:
+    desc: "Fail when a brand raster or master is missing or the playground's brand copies differ from docs/assets/"
+    cmds: [sh scripts/brand-assets.sh --check]
+
   release:pgo:
     desc: "Refresh cmd/xtandard-image/default.pgo: 30 s CPU profile of $XI_IMAGE under the smoke load (build it first)"
     cmds: [sh scripts/pgo-profile.sh]

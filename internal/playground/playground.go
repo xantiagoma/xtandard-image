@@ -9,7 +9,7 @@
 // default-src 'self'. Routes, relative to Config.Path:
 //
 //	GET  /                          the page (Cache-Control: no-store)
-//	GET  /assets/<version>/<path>   the ES modules (snippets/… in subdirectories) and the stylesheet (immutable; version is their hash)
+//	GET  /assets/<version>/<path>   the ES modules (snippets/… in subdirectories), the stylesheet and the brand images (brand/…) (immutable; version is their hash)
 //	GET  /api/meta                  Meta as JSON (no key material)
 //	POST /api/sign                  SignRequest → SignResponse, signed with the server's keys
 //	GET  /api/render?u=<url>        runs Deps.Image on a public path and query in-process (ranges=1: with Range, WP-128)
@@ -179,9 +179,9 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 	return h.recoverer(securityHeaders(mux)), nil
 }
 
-// loadAssets reads the embedded files (every .js module and .css
-// stylesheet under assets/, subdirectories included: the code snippets are
-// assets/snippets/…), derives the asset version from their hash and fills
+// loadAssets reads the embedded files (every .js module, .css stylesheet
+// and brand image under assets/, subdirectories included: the code snippets
+// are assets/snippets/…, the favicons assets/brand/…), derives the asset version from their hash and fills
 // the page template. The modules import each other with relative URLs, so
 // they all live under one versioned directory.
 func (h *handler) loadAssets() error {
@@ -198,6 +198,14 @@ func (h *handler) loadAssets() error {
 			contentType = "text/javascript; charset=utf-8"
 		case strings.HasSuffix(name, ".css"):
 			contentType = "text/css; charset=utf-8"
+		// The favicons and the header symbol (brand/…, copied from
+		// docs/assets by scripts/brand-assets.sh, WP-153).
+		case strings.HasSuffix(name, ".svg"):
+			contentType = "image/svg+xml"
+		case strings.HasSuffix(name, ".png"):
+			contentType = "image/png"
+		case strings.HasSuffix(name, ".ico"):
+			contentType = "image/x-icon"
 		default:
 			return nil
 		}

@@ -319,3 +319,13 @@ internal/codec/dds (bc.go, bc6h.go, tables.go) reimplements in Go the
 BC1-BC3 integer arithmetic, the BC6H per-mode bit layouts and the BC6H/BC7
 partition tables of bcdec.h v0.985. internal/codec/dds/testdata/bcdec holds
 reference decodes made with bcdec (not vendored).
+
+Brand artwork (docs/assets, internal/playground/assets/brand): the
+wordmark in the lockups and the text of docs/assets/social.svg are glyph
+outlines of Urbanist (Black 900, SemiBold 600), Copyright 2021 The Urbanist
+Project Authors (https://github.com/coreyhu/Urbanist), and of JetBrains
+Mono Regular, Copyright 2020 The JetBrains Mono Project Authors
+(https://github.com/JetBrains/JetBrainsMono), both licensed under the SIL
+Open Font License, Version 1.1 (https://openfontlicense.org). The outlines
+are artwork made with the fonts; no font file is distributed. See
+docs/BRAND.md.
