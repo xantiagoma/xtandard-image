@@ -8,6 +8,7 @@
 #   schema/<major>/config.schema.json   the config schema; <major> comes from its $id
 #   schema/<major>/openapi.json         the OpenAPI document
 #   schema/latest/…                     the same two files
+#   assets/…                            favicons, header lockups, social.png (docs/assets)
 #
 # Deterministic: the output depends only on the committed files (no dates,
 # no commit ids), and it fails when the $id is not a Pages URL of the form
@@ -36,6 +37,11 @@ for dir in "$major" latest; do
 done
 sed "s/@MAJOR@/$major/g" docs/pages/index.html >"$out/index.html"
 cp docs/pages/api/index.html "$out/api/index.html"
+# Brand files the pages reference (favicons, header lockup, og:image; docs/BRAND.md).
+mkdir -p "$out/assets"
+for f in favicon.svg favicon.ico apple-touch-icon.png social.png lockup-horizontal-dark.svg lockup-horizontal-light.svg; do
+  cp "docs/assets/$f" "$out/assets/$f"
+done
 # Serve files as they are (no Jekyll processing of the artifact).
 : >"$out/.nojekyll"
 
