@@ -7,7 +7,7 @@
 [![npm: pending](https://img.shields.io/badge/npm-pending-lightgrey)](https://github.com/xantiagoma/xtandard-image/blob/main/docs/RELEASE.md) <!-- registry-status: pending -->
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
 
-`@xtandard/image` is the TypeScript client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), a self-hosted image and video processing proxy in Go and libvips. The package builds and signs the URLs your code sends to the server, and wraps its `/info` and health endpoints; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
+`@xtandard/image` is the TypeScript client for [xtandard-image](https://github.com/xantiagoma/xtandard-image#readme), an open-source media server that covers your application's image and video needs, built on libvips and FFmpeg. The package builds and signs the URLs your code sends to the server, and wraps its `/info` and health endpoints; it does not process images itself. To run a server, see [Getting started](https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md), or start one with signing keys:
 
 ```sh
 export XI_SIGNING_KEY="$(openssl rand -hex 32)" XI_SIGNING_SALT="$(openssl rand -hex 32)"
@@ -191,5 +191,7 @@ try {
 - [Contributing](https://github.com/xantiagoma/xtandard-image/blob/main/CONTRIBUTING.md) and [the official clients](https://github.com/xantiagoma/xtandard-image/blob/main/clients/README.md)
 - [Security policy](https://github.com/xantiagoma/xtandard-image/blob/main/SECURITY.md)
 - Licence: [MIT](https://github.com/xantiagoma/xtandard-image/blob/main/LICENSE)
+
+A personal project, provided as is under the MIT licence: see the [disclaimer](https://github.com/xantiagoma/xtandard-image#disclaimer).
 
 Design: every official client is generated from one spec and passes one conformance fixture ([ADR 0013](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0013-official-clients.md)).
