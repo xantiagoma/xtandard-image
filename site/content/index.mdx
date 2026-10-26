@@ -1,0 +1,88 @@
+---
+title: Self-hosted image and video processing server
+description: A self-hosted image and video processing server in Go and libvips. imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, Cloudflare, Thumbor and more. MIT licensed.
+template: splash
+pagefind: false
+hero:
+  title: xtandard-image
+  tagline: A self-hosted image and video processing server in Go and libvips. imgproxy-compatible URLs, plus the URL dialects of imgix, Cloudinary, ImageKit, Cloudflare, Thumbor and more. MIT licensed.
+  image:
+    file: ../../../../docs/assets/logo.svg
+    alt: The xtandard-image app icon
+  actions:
+    - text: Get started
+      link: "@BASE@/getting-started/"
+      icon: right-arrow
+    - text: URL dialects
+      link: "@BASE@/guides/url-dialects/"
+      variant: minimal
+    - text: View on GitHub
+      link: https://github.com/xantiagoma/xtandard-image
+      icon: external
+      variant: minimal
+---
+
+{/* The home page of the documentation site: the only page written for the site rather than
+    synced from the repository (with reference/schemas.md and the ADR overview). Its content
+    follows the root README; scripts/sync.ts replaces the BASE and IMAGE tokens. */}
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<figure class="xi-shot">
+  <img class="xi-light-only" src="@BASE@/assets/playground-light.webp" width="2000" height="1333" alt="The built-in playground: an imgproxy URL with smart crop and a duotone in the brand colours, source and result side by side" />
+  <img class="xi-dark-only" src="@BASE@/assets/playground-dark.webp" width="2000" height="1333" alt="The built-in playground: an imgproxy URL with smart crop and a duotone in the brand colours, source and result side by side" />
+  <figcaption>The built-in <a href="@BASE@/guides/playground/">playground</a>: build a URL in any dialect and compare the source with the result.</figcaption>
+</figure>
+
+## Quick start
+
+Start a server that may fetch only from `images.unsplash.com`, with the Cloudflare Images URL format enabled next to the imgproxy one:
+
+```sh
+docker run -d --name xtandard-image -p 8080:8080 \
+  -e XI_SOURCES=web -e XI_SOURCES_WEB_TYPE=http -e XI_SOURCES_WEB_ALLOW=images.unsplash.com \
+  -e XI_DIALECTS_CLOUDFLARE_ENABLED=true \
+  @IMAGE@
+
+# imgproxy URL: fit into 640 px wide, as WebP
+curl -fsS -o thumb.webp \
+  'http://localhost:8080/insecure/rs:fit:640:0/plain/https://images.unsplash.com/photo-1506744038136-46273834b3fb@webp'
+
+# Cloudflare Images URL: a 640x384 crop, as AVIF
+curl -fsS -o crop.avif \
+  'http://localhost:8080/cdn-cgi/image/width=640,height=384,fit=cover,format=avif/https://images.unsplash.com/photo-1506744038136-46273834b3fb'
+```
+
+Without signing keys, unsigned URLs are accepted only with common widths, heights and qualities. For production, [Getting started](@BASE@/getting-started/) walks through signed URLs, `/info` and a Compose service for Dokploy or Coolify.
+
+## Features
+
+<CardGrid>
+  <Card title="imgproxy URLs work unchanged" icon="approve-check">
+    Signing, `enc/` encrypted sources, presets, chained pipelines, `/info` and every processing option, including the ones imgproxy offers only in its Pro edition.
+  </Card>
+  <Card title="Many URL dialects" icon="puzzle">
+    imgix, Cloudinary, ImageKit, Cloudflare Images, Bunny, Thumbor, wsrv/weserv, AWS Serverless Image Handler, a query form with imaginary's endpoints, and the unpic providers.
+  </Card>
+  <Card title="A long list of formats" icon="document">
+    Reads JPEG, PNG, GIF, WebP, AVIF, HEIC, JPEG XL, TIFF, SVG, camera RAW, PDF, PSD and dozens more; writes JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP and ICO.
+  </Card>
+  <Card title="Video and audio" icon="laptop">
+    Thumbnails, sprites, GIF to video, transcoding with trim, resize, overlays and audio processing, and HLS/DASH streams (`full` and `gpl` images).
+  </Card>
+  <Card title="Secure by default" icon="padlock">
+    Refuses to start without a source allowlist; protects against SSRF and DNS rebinding, enforces decompression-bomb and pixel limits, and sanitises SVG.
+  </Card>
+  <Card title="Easy to operate" icon="analytics">
+    CDN-friendly headers, an optional result cache, Prometheus metrics, OpenTelemetry tracing, admission control, a read-only multi-arch image and a Helm chart.
+  </Card>
+</CardGrid>
+
+## Where to next
+
+<CardGrid>
+  <LinkCard title="Configuration" href="@BASE@/guides/configuration/" description="Every XI_* variable, config files and their JSON Schema." />
+  <LinkCard title="Sources" href="@BASE@/guides/sources/" description="S3, GCS, Azure, local directories, FTP/SFTP and http origins, at once." />
+  <LinkCard title="Deploy" href="@BASE@/deploy/" description="Ready-to-use files with autoscaling for every common platform." />
+  <LinkCard title="Clients" href="@BASE@/clients/" description="Official URL builders and clients for twelve languages." />
+</CardGrid>

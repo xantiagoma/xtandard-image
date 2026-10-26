@@ -1,54 +1,86 @@
 name: pages
 
-# Publishes the config JSON Schema and the OpenAPI document to GitHub Pages
-# (WP-81b, ADR 0007 decision 6, docs/RELEASE.md "Schema and API site"):
+# The documentation website and the published schemas (WP-156, ADR 0015;
+# WP-81b, ADR 0007 decision 6; docs/RELEASE.md "Documentation site"):
 #
-#   https://xantiagoma.github.io/xtandard-image/
-#     index.html                         links every file
+#   https://me.xantiagoma.com/xtandard-image/   (xantiagoma.github.io redirects there)
+#     /                                  home page; the docs under /guides/, /deploy/, /clients/, ...
 #     api/                               Scalar over schema/latest/openapi.json
 #     schema/v<N>/config.schema.json     the schema's $id (N = schema major)
 #     schema/v<N>/openapi.json
 #     schema/latest/{config.schema.json,openapi.json}
 #
-# The site is assembled by scripts/pages-build.sh, the same script as
-# `task pages:build`, so it can be checked locally in dist/pages/.
+# site/ (Astro Starlight on Bun) syncs the repository's Markdown, builds it
+# into dist/pages/ and checks every link; scripts/pages-build.sh supplies the
+# schema files and the Scalar page byte for byte. `task pages:build` runs the
+# same steps locally.
 #
-# Prerequisite (owner, once): Settings → Pages → Source: "GitHub Actions".
+# Pull requests that touch the docs or the site build and check it without
+# deploying. Prerequisite (owner, once): Settings → Pages → Source: "GitHub Actions".
 
 on:
   push:
     branches: [main]
-    paths:
-      - internal/config/config.schema.json
-      - internal/apidoc/openapi.json
-      - docs/pages/**
-      - docs/assets/**
-      - scripts/pages-build.sh
-      - .github/workflows/pages.yml
+    paths: &paths
+      - 'docs/**'
+      - '*.md'
+      - 'clients/README.md'
+      - 'clients/*/README.md'
+      - 'bench/RESULTS.md'
+      - 'site/**'
+      - 'internal/config/config.schema.json'
+      - 'internal/apidoc/openapi.json'
+      - 'scripts/pages-build.sh'
+      - 'scripts/check-ts-licenses.ts'
+      - 'package.json'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    paths: *paths
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# One deployment at a time; never cancel one that is in progress.
+# One deployment at a time, never cancelled; a pull request's newer build
+# cancels its older one.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
+    name: build (sync, Astro, link checks, licences)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: Assemble the site
-        run: sh scripts/pages-build.sh dist/pages
-      - uses: actions/configure-pages@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json # "packageManager", kept equal to the .mise.toml pin
+      - name: Pages origin and base path
+        id: pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
+      - name: Install the site's npm tree (site/bun.lock)
+        working-directory: site
+        run: bun install --frozen-lockfile
+      - name: npm licences (ADR 0006 allowlist, ADR 0015 exceptions)
+        working-directory: site
+        run: bun run licenses
+      - name: Build the site (fails on a broken link or a changed static file)
+        working-directory: site
+        env:
+          # Empty on pull requests: the defaults in site/manifest.ts apply.
+          SITE_ORIGIN: ${{ steps.pages.outputs.origin }}
+          SITE_BASE: ${{ steps.pages.outputs.base_path }}
+        run: bun run build
       - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
         with:
           path: dist/pages
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
       pages: write
@@ -62,20 +94,22 @@ jobs:
 
   verify:
     # The published bytes must equal the committed files: the $id resolves,
-    # and editors fetch exactly what the tests validated.
+    # and editors fetch exactly what the tests validated. The Scalar page too.
     needs: deploy
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: Fetch and compare every published file
+      - name: Fetch and compare every published schema file and the Scalar page
         run: |
           sh scripts/pages-build.sh "$RUNNER_TEMP/site" >/dev/null
           base=https://xantiagoma.github.io/xtandard-image
           cd "$RUNNER_TEMP/site"
-          for f in $(find . -type f -name '*.json' | sort); do
+          for f in $(find . -type f \( -name '*.json' -o -path ./api/index.html \) | sort); do
             url="$base/${f#./}"
             # The query string skips the Pages CDN cache; the loop covers
-            # propagation right after the deployment.
+            # propagation right after the deployment. -L follows the redirect
+            # to the custom domain.
             ok=false
             for attempt in 1 2 3 4 5 6; do
               if curl -fsSL -o "$RUNNER_TEMP/fetched" "$url?run=$GITHUB_RUN_ID-$attempt" &&

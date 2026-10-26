@@ -14,6 +14,7 @@
 #   task ts:check           # the TypeScript workspace (packages/*, ADR 0009); host Bun, no Docker
 #   task clients:check clients:test   # the official clients (clients/*, ADR 0013); host toolchains
 #   task deploy:platforms:check deploy:platforms:run   # deploy/ platform files and IaC (WP-149)
+#   task pages:build pages:dev   # the documentation site (site/, ADR 0015) into dist/pages/; host Bun
 #
 # The host tasks (lint, test, ...) run the same scripts with the toolchain
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
@@ -142,9 +143,28 @@ tasks:
     desc: "Verify $XI_IMAGE (default xtandard-image:dev): version, config, ≤ 110 MB compressed, read-only + health, smoke"
     cmds: [sh scripts/verify-app-image.sh]
 
+  # The documentation site (site/, Astro Starlight on Bun, ADR 0015): the repository's
+  # Markdown plus the static files of scripts/pages-build.sh (schemas, Scalar page).
   pages:build:
-    desc: "Assemble the GitHub Pages site (config schema, OpenAPI, index, Scalar page) into dist/pages/, as .github/workflows/pages.yml deploys it"
-    cmds: [sh scripts/pages-build.sh]
+    desc: "Build the documentation site into dist/pages/ as .github/workflows/pages.yml deploys it (sync, Astro build, link checks); licences with `task pages:licenses`"
+    dir: site
+    cmds:
+      - bun install --frozen-lockfile
+      - bun run build
+
+  pages:dev:
+    desc: "Preview the documentation site with live reload at http://localhost:4321/xtandard-image/ (rerun after editing a doc: the pages are synced copies)"
+    dir: site
+    cmds:
+      - bun install --frozen-lockfile
+      - bun run dev
+
+  pages:licenses:
+    desc: "Check the licences of the documentation site's npm tree (ADR 0006, ADR 0015)"
+    dir: site
+    cmds:
+      - bun install --frozen-lockfile
+      - bun run licenses
 
   brand:assets:
     desc: "Rebuild the brand rasters in docs/assets/ from their SVG masters and copy the favicons into the playground (docs/BRAND.md; needs rsvg-convert, magick, optionally oxipng)"

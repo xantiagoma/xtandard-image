@@ -128,7 +128,7 @@ The release identity regexp below (`release\.yml@`) also accepts edge signatures
 5. Watch `release` in Actions. Nothing is tagged until all six builds (three flavours, two architectures) have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
 6. Verify the published image (below) and edit the generated release notes if needed. After the first stable release, `docs/GETTING-STARTED.md` can lead with the published image instead of a local build: its `sh quickstart-build` block stays the CI build, and the prose names the moving `slim` tag.
 
-7. Check the published schema and API document (below, "Schema and API site"): the last `pages` run on `main` must be green, and `curl -fsS https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json | cmp - <(docker run --rm ghcr.io/xantiagoma/xtandard-image:X.Y.Z config schema)` must print nothing. If it differs, run the `pages` workflow from the tag.
+7. Check the published schema and API document (below, "Documentation site and schemas"): the last `pages` run on `main` must be green, and `curl -fsS https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json | cmp - <(docker run --rm ghcr.io/xantiagoma/xtandard-image:X.Y.Z config schema)` must print nothing. If it differs, run the `pages` workflow from the tag.
 
 **Dry run**: Actions → `release` → *Run workflow* with `dry_run` checked (the default) builds and verifies the three flavours on both architectures from the selected branch without pushing. With `dry_run` unchecked, `version` must be an existing tag; it is checked out and published like a tag push, but no GitHub release is created.
 
@@ -155,25 +155,29 @@ Total wall time was about 4 h 10 min, most of it the emulated amd64 slim base. T
 
 **`v0.1.0-rc.2` (2026-10-24)** repeated steps 1, 2 and 5–10 on commit `e6ed827d` without rebuilding the bases: slim r7, full r9 and gpl r10 were already on GHCR, built, verified and attested by `base-image.yml` on 2026-10-23, and the app builds used their index digests (`scripts/base-image-ref.sh --digest`). Acceptance: slim 143/143, full 155/155 and gpl 155/155 on arm64 and on amd64 under Rosetta (WP-118 fixed the gpl sandbox failure under emulation). Total wall time was about 25 minutes. Actions was disabled on the repository the same day (`enabled: false` in the repository's Actions permissions) after billing blocked it again.
 
-## Schema and API site (GitHub Pages)
+## Documentation site and schemas (GitHub Pages)
 
-`.github/workflows/pages.yml` publishes the config JSON Schema and the OpenAPI document to `https://xantiagoma.github.io/xtandard-image/` (WP-81b, ADR 0007 decision 6). It runs on every push to `main` that changes `internal/config/config.schema.json`, `internal/apidoc/openapi.json`, `docs/pages/**`, `scripts/pages-build.sh` or the workflow, and on demand (*Run workflow*).
+`.github/workflows/pages.yml` publishes the documentation website, the config JSON Schema and the OpenAPI document to `https://me.xantiagoma.com/xtandard-image/` (the custom domain of `xantiagoma.github.io`, which redirects there; WP-156, [ADR 0015](adr/0015-documentation-site.md); WP-81b, ADR 0007 decision 6). It deploys on every push to `main` that changes `docs/**`, a root `*.md`, `clients/README.md` or `clients/*/README.md`, `bench/RESULTS.md`, `site/**`, `internal/config/config.schema.json`, `internal/apidoc/openapi.json`, `scripts/pages-build.sh`, `scripts/check-ts-licenses.ts` or the workflow, and on demand (*Run workflow*). Pull requests that touch the same paths build and check the site without deploying.
 
 | Path | Content |
 |---|---|
-| `/` | `index.html`: links every file, editor modelines (`docs/pages/index.html`) |
+| `/` | The home page; the docs under `/getting-started/`, `/guides/…`, `/deploy/`, `/operations/`, `/clients/…`, `/reference/…` and `/project/…` |
 | `/api/` | Scalar API reference over `schema/latest/openapi.json` (same pinned Scalar build and SRI as admin `/docs`) |
+| `/reference/schemas/` | The schema files and the editor modelines (formerly the site's index page) |
 | `/schema/v1/config.schema.json` | The config schema; this URL is its `$id` |
 | `/schema/v1/openapi.json` | The OpenAPI document |
 | `/schema/latest/…` | The same two files for the newest schema major |
+| `/assets/…` | Every file of `docs/assets` (favicons, lockups, `social.png`, screenshots) |
 
-`v1` is the schema major version read from the `$id`, not the release version, so the URL stays stable across releases. Bump it (in `config.SchemaID`, `TestSchemaID` and `docs/schemastore/catalog-entry.json`) only when a config key is removed or renamed; `scripts/pages-build.sh` then needs to keep publishing the last `v1` files next to `v2` (check them out from the last `v1` tag), because a published `$id` is forever.
+The site is Astro Starlight in `site/`, a separate Bun project with its own lockfile. The Markdown in the repository stays the source: `site/scripts/sync.ts` copies the files that `site/manifest.ts` lists (the sidebar) into the site, takes each title from its H1, turns relative links into site routes or GitHub URLs, and fails on a link to a missing file. `scripts/pages-build.sh` still assembles the schema files, the Scalar page and the assets (into `dist/pages-static/`), which the site copies byte for byte. The build fails on a broken link or anchor (`starlight-links-validator`, then `site/scripts/check-dist.ts` over every built HTML file) or when a static file differs from what `pages-build.sh` produced.
 
-Jobs: `build` runs `scripts/pages-build.sh` (the same script as `task pages:build`) and uploads `dist/pages` with `actions/upload-pages-artifact`; `deploy` publishes it with `actions/deploy-pages` to the `github-pages` environment; `verify` fetches every published JSON file, compares it byte for byte with the committed one, and validates the SchemaStore samples (`docs/schemastore/tests`) with Ajv against the schema URL their modeline names.
+`v1` is the schema major version read from the `$id`, not the release version, so the URL stays stable across releases. The `$id` keeps the `xantiagoma.github.io` host, which GitHub redirects to the custom domain. Bump the major (in `config.SchemaID`, `TestSchemaID` and `docs/schemastore/catalog-entry.json`) only when a config key is removed or renamed; `scripts/pages-build.sh` then needs to keep publishing the last `v1` files next to `v2` (check them out from the last `v1` tag), because a published `$id` is forever.
+
+Jobs: `build` installs `site/bun.lock`, runs the licence check (`bun run licenses`) and `bun run build` with the origin and base path that `actions/configure-pages` reports, and uploads `dist/pages` with `actions/upload-pages-artifact`; `deploy` publishes it with `actions/deploy-pages` to the `github-pages` environment; `verify` fetches every published JSON file and the Scalar page, compares them byte for byte with the committed ones, and validates the SchemaStore samples (`docs/schemastore/tests`) with Ajv against the schema URL their modeline names.
 
 Before the first run the owner must, once: set Settings → Pages → Source to *GitHub Actions* and enable the `pages` workflow. Then open the SchemaStore PR ([docs/schemastore/README.md](schemastore/README.md)).
 
-Locally, `task pages:build` assembles the same site in `dist/pages/` and lists its files; the output depends only on the committed files, so two runs are byte-identical. Serve it with any static server to check it, e.g. `python3 -m http.server -d dist/pages`.
+Locally, `task pages:build` builds the same site into `dist/pages/` (the output depends only on the committed files), and `task pages:dev` serves a live preview at `http://localhost:4321/xtandard-image/`; rerun it after editing a doc, because the pages are synced copies. To check a build, serve `dist/pages` under the base path, for example by copying it to `<dir>/xtandard-image/` and running `python3 -m http.server -d <dir>`.
 
 ## Verifying a published image
 

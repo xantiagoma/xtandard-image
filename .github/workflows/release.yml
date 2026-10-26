@@ -45,6 +45,7 @@ on:
       - "**/*.md"
       - docs/**
       - clients/**
+      - site/**
       - packages/**
       - bench/**
       - package.json
