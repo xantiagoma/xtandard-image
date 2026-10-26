@@ -34,8 +34,9 @@ Pin images to an exact version (`:0.2.1-full`) or by digest in production, and r
 |---|---|---|---|
 | Stable `vX.Y.Z` | `X.Y.Z`, `X.Y.Z-slim`, `X.Y.Z-full`, `X.Y.Z-gpl`, and the moving tags `latest`, `slim`, `full`, `gpl` | `latest` | release |
 | Prerelease `vX.Y.Z-rc.N` | `X.Y.Z-rc.N`, `X.Y.Z-rc.N-slim`, `X.Y.Z-rc.N-full`, `X.Y.Z-rc.N-gpl` only | `next` | prerelease |
+| Edge: a push to `main` ([Edge images](#edge-images)) | the moving `main`, `main-slim`, `main-full`, `main-gpl`, and per commit `sha-<sha7>`, `sha-<sha7>-slim`, `sha-<sha7>-full`, `sha-<sha7>-gpl` | none | none |
 
-`X.Y.Z` and `latest` without a suffix are the `slim` flavour. There are no `X.Y` (for example `0.1`) or `X` tags: `release.yml` does not create them. For "the newest patch of this minor", use the moving flavour tag or pin an exact version. The tag check in `release.yml` accepts any `v<major>.<minor>.<patch>[-pre]`. Keeping the major at `0` is a policy of this document, and the workflow does not enforce it.
+`X.Y.Z` and `latest` without a suffix are the `slim` flavour, and so are `main` and `sha-<sha7>`. Edge images never move `latest`, `slim`, `full` or `gpl`: those always name the newest stable release. There are no `X.Y` (for example `0.1`) or `X` tags: `release.yml` does not create them. For "the newest patch of this minor", use the moving flavour tag or pin an exact version. The tag check in `release.yml` accepts any `v<major>.<minor>.<patch>[-pre]`. Keeping the major at `0` is a policy of this document, and the workflow does not enforce it.
 
 ## What gets published
 
@@ -51,7 +52,7 @@ A tag `vX.Y.Z` runs `.github/workflows/release.yml`. It builds three flavours of
 
 | Job | Runs on | Does |
 |---|---|---|
-| `meta` | ubuntu-24.04 | Validates the tag (`v<major>.<minor>.<patch>[-pre]`), reads the commit and `SOURCE_DATE_EPOCH`, checks `scripts/base-image-ref.sh --check`, and resolves the slim, full and gpl base images (runtime and builder) to `@sha256:` digests. |
+| `meta` | ubuntu-24.04 | Validates the tag (`v<major>.<minor>.<patch>[-pre]`; on a push to `main`, computes the [edge](#edge-images) version instead), reads the commit and `SOURCE_DATE_EPOCH`, checks `scripts/base-image-ref.sh --check`, and resolves the slim, full and gpl base images (runtime and builder) to `@sha256:` digests. |
 | `build` (×6: 3 flavours × 2 architectures) | `ubuntu-24.04` (amd64), `ubuntu-24.04-arm` (arm64), native, no QEMU | Builds the `runtime` target of one flavour, pushes it **by digest** (no tag yet), pulls it back and runs `scripts/verify-app-image.sh` with `XI_EXPECT_FLAVOR` (version, image config, flavour labels, the flavour's size limit, read-only rootfs + `health`, smoke test) and the M1 acceptance suite `scripts/acceptance.sh` against the pushed digest (the release gate, below). Then it attests a syft SPDX SBOM with cosign and SLSA provenance with `actions/attest-build-provenance` on the per-arch manifest, and exports the unstripped binary (`debug` target, `xtandard-image-<ver>-<flavour>-linux-<arch>.debug`). |
 | `merge` (×3, one per flavour) | ubuntu-24.04 | Waits for all six builds. `docker buildx imagetools create` the flavour's multi-arch index with its tags (below), signs it keyless with cosign (`--recursive`, so the per-arch manifests are signed too) and attests SLSA provenance on the index. |
 | `release` | ubuntu-24.04 | Tag pushes only, after the three merges: creates the GitHub release with the six unstripped binaries, the six SPDX SBOMs, `SHA256SUMS`, and the three index digests in the notes. |
@@ -76,6 +77,40 @@ Build properties (enforced in the `Dockerfile`):
 - Reproducible: pinned toolchain (in the base builder), base images by digest, `go.sum`, `main.date` and layer timestamps from `SOURCE_DATE_EPOCH` (`rewrite-timestamp=true`).
 - Runtime: the base `runtime` image plus the binary only; UID 65532; `HEALTHCHECK` via `xtandard-image health`; `EXPOSE 8080 9090`; ARCHITECTURE §14 `ENV`; OCI labels `source`, `version`, `revision`, `created`, `base.name`, and per flavour (build arg `XI_FLAVOR`, stages `runtime-slim`/`runtime-full`/`runtime-gpl`) `licenses` (table above), a `description` naming the flavour and `dev.xtandard.flavor`. The base's own `dev.xtandard.base.flavor` label is inherited, and `verify-app-image.sh` fails when the two differ.
 - `XI_FLAVOR=full` or `gpl` without `GO_TAGS=ffmpeg` fails the build (the video decoders would silently be missing).
+
+## Edge images
+
+Every push to `main` runs the same `release.yml` in edge mode (WP-155), so you can follow the development head. The quality bar is the same as for a release: `meta`, the six native `build` legs (`verify-app-image.sh` and the acceptance suite against the pushed digest), and `merge` with keyless cosign signing, SLSA provenance and the SBOM attestation. Only the version and the tags differ, and the `release` and `npm` jobs are skipped. Pushes that only touch Markdown, `docs/`, `clients/`, `packages/`, `bench/` or the JS workspace files (`paths-ignore` in the workflow, none of them in the image) build nothing. A newer push cancels the edge run still in progress; tag releases are never cancelled.
+
+| Tag | Flavour | Moves |
+|---|---|---|
+| `main`, `main-slim` | slim | every push to `main` |
+| `main-full` | full | every push to `main` |
+| `main-gpl` | gpl | every push to `main` |
+| `sha-<sha7>`, `sha-<sha7>-slim` | slim | never (one per commit) |
+| `sha-<sha7>-full` | full | never |
+| `sha-<sha7>-gpl` | gpl | never |
+
+`<sha7>` is the first 7 characters of the commit hash (`git rev-parse HEAD | cut -c1-7`). The version baked in (`xtandard-image version`, the `org.opencontainers.image.version` label) is a semver prerelease that sorts after the newest release tag on `main` and before the next release: `0.1.0-rc.2.main.45.g7083040` after `v0.1.0-rc.2` (45 commits since that tag), or `0.1.1-main.3.gabc1234` after a stable `v0.1.0`.
+
+Edge images are for testing and for deploys that track `main`. They carry no compatibility promise and no changelog entry. To deploy one reproducibly, pin the per-commit tag or, better, its digest; never deploy the moving `main` tag where you need to know what runs:
+
+```sh
+docker buildx imagetools inspect ghcr.io/xantiagoma/xtandard-image:sha-7083040-full   # prints the index digest
+docker pull ghcr.io/xantiagoma/xtandard-image@sha256:<digest>
+```
+
+Verify an edge image like a release ([Verifying a published image](#verifying-a-published-image)), but pin the signer to `main`:
+
+```sh
+cosign verify ghcr.io/xantiagoma/xtandard-image:sha-7083040 \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity 'https://github.com/xantiagoma/xtandard-image/.github/workflows/release.yml@refs/heads/main'
+```
+
+The release identity regexp below (`release\.yml@`) also accepts edge signatures. To accept only release builds, use `--certificate-identity-regexp '^https://github\.com/xantiagoma/xtandard-image/\.github/workflows/release\.yml@refs/tags/v'`.
+
+**Retention.** Each edge run adds six per-arch manifests, three indexes, and their signatures and attestations to the package, and the `sha-*` tags stay forever. Nothing deletes them yet. Backlog: a scheduled workflow with `actions/delete-package-versions` that keeps the newest N `sha-*` versions and deletes untagged versions older than a few weeks. It must never delete a version that carries a release tag (`X.Y.Z*`, `latest`, `slim`, `full`, `gpl`), nor the signature and attestation artefacts (`sha256-<digest>.sig`/`.att` tags, referrers) of a version it keeps, and the per-arch manifests of a kept index are untagged too, so "untagged" alone is not a safe filter. The unstripped edge binaries (`debug-*` workflow artefacts) are kept 14 days instead of 90.
 
 ## Cutting a release
 

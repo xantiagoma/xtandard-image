@@ -21,12 +21,37 @@ name: release
 #
 #   ghcr.io/xantiagoma/xtandard-image:{<ver>-slim,<ver>,slim,latest,<ver>-full,full,<ver>-gpl,gpl}
 #
+# Edge images (WP-155): every push to main that touches more than docs and
+# clients runs the same meta, build and merge jobs (same gates, signing,
+# provenance and SBOM) with an edge version (meta: <tag>.main.<n>.g<sha7>
+# after a prerelease tag, X.Y.<Z+1>-main.<n>.g<sha7> after a stable one) and
+# edge tags instead of version tags. release and npm are skipped:
+#   slim  main, main-slim, sha-<sha7>, sha-<sha7>-slim
+#   full  main-full, sha-<sha7>-full
+#   gpl   main-gpl, sha-<sha7>-gpl
+# latest, slim, full and gpl stay on the newest stable release. A newer push
+# to main cancels the edge run in progress; tag releases are never cancelled.
+#
 # Nothing is tagged unless all six builds passed verify-app-image.sh and the
 # acceptance suite: merge needs the whole build matrix.
 
 on:
   push:
     tags: ["v*"]
+    # Edge images. Path filters apply to the branch push only, never to tags.
+    # None of these paths is in the image or used to verify it (.dockerignore).
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - docs/**
+      - clients/**
+      - packages/**
+      - bench/**
+      - package.json
+      - bun.lock
+      - tsconfig.base.json
+      - Package.swift
+      - composer.json
   workflow_dispatch:
     inputs:
       version:
@@ -40,13 +65,17 @@ on:
 permissions:
   contents: read
 
+# An edge run on main is superseded by the next push; a release never is.
+# Edge has its own group, so a push to main never cancels a dispatched run.
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'push' && github.ref_type == 'branch' && 'release-edge' || format('release-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
 
 env:
   IMAGE: ghcr.io/xantiagoma/xtandard-image
   PUSH: ${{ github.event_name == 'push' || !inputs.dry_run }}
+  # A push to main (the only branch in the trigger): edge images, no release.
+  EDGE: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
 
 jobs:
   meta:
@@ -57,6 +86,8 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
+      edge: ${{ steps.meta.outputs.edge }}
+      short: ${{ steps.meta.outputs.short }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
       commit: ${{ steps.meta.outputs.commit }}
       epoch: ${{ steps.meta.outputs.epoch }}
@@ -71,20 +102,55 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry_run && inputs.version || github.ref }}
+          # Edge: the whole history with tags, for the commit count since the
+          # newest release tag. A release keeps the shallow checkout.
+          fetch-depth: ${{ github.event_name == 'push' && github.ref_type == 'branch' && '0' || '1' }}
 
       - id: meta
         env:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
-          tag="${INPUT_VERSION:-$GITHUB_REF_NAME}"
-          if ! printf '%s\n' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "::error::version '$tag' is not v<major>.<minor>.<patch>[-prerelease]"
-            exit 1
+          semver='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          short=""
+          if [ "$EDGE" = "true" ]; then
+            # Edge version: a semver prerelease that sorts after the newest
+            # release tag reachable from main and before the next release:
+            #   after v0.1.0-rc.2 (prerelease):  0.1.0-rc.2.main.<n>.g<sha7>
+            #   after v0.1.0 (stable):           0.1.1-main.<n>.g<sha7>
+            # <n> is the number of commits since that tag, so it only grows
+            # on main; the g (as in git describe) keeps an all-digit sha a
+            # valid identifier.
+            short="$(git rev-parse HEAD | cut -c1-7)"
+            base="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)"
+            if printf '%s\n' "$base" | grep -Eq "$semver"; then
+              n="$(git rev-list --count "$base..HEAD")"
+            else
+              base=v0.0.0
+              n="$(git rev-list --count HEAD)"
+            fi
+            base="${base#v}"
+            case "$base" in
+              *-*) version="$base.main.$n.g$short" ;;
+              *)
+                IFS=. read -r major minor patch <<< "$base"
+                version="$major.$minor.$((patch + 1))-main.$n.g$short"
+                ;;
+            esac
+            tag="$GITHUB_REF_NAME"
+            prerelease=true
+          else
+            tag="${INPUT_VERSION:-$GITHUB_REF_NAME}"
+            if ! printf '%s\n' "$tag" | grep -Eq "$semver"; then
+              echo "::error::version '$tag' is not v<major>.<minor>.<patch>[-prerelease]"
+              exit 1
+            fi
+            version="${tag#v}"
+            prerelease=false
+            case "$version" in *-*) prerelease=true ;; esac
           fi
-          version="${tag#v}"
-          prerelease=false
-          case "$version" in *-*) prerelease=true ;; esac
           {
+            echo "edge=$EDGE"
+            echo "short=$short"
             echo "tag=$tag"
             echo "version=$version"
             echo "prerelease=$prerelease"
@@ -236,7 +302,7 @@ jobs:
           name: debug-${{ matrix.flavor }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/debug/*
           if-no-files-found: error
-          retention-days: 90
+          retention-days: ${{ env.EDGE == 'true' && 14 || 90 }}
 
       - name: SBOM (syft)
         if: env.PUSH == 'true'
@@ -315,22 +381,36 @@ jobs:
         env:
           VERSION: ${{ needs.meta.outputs.version }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          SHORT: ${{ needs.meta.outputs.short }}
           FLAVOR: ${{ matrix.flavor }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
         working-directory: ${{ runner.temp }}/digests
         run: |
-          # <ver>-<flavor> always; <ver> and latest name slim (the default
-          # flavor). The moving tags (latest, slim, full, gpl) only for
-          # stable releases.
-          tags="-t $IMAGE:$VERSION-$FLAVOR"
-          if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:$VERSION"; fi
-          if [ "$PRERELEASE" = "false" ]; then
-            tags="$tags -t $IMAGE:$FLAVOR"
-            if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:latest"; fi
+          annotations=""
+          if [ "$EDGE" = "true" ]; then
+            # Edge: the immutable sha-<sha7>-<flavor> and the moving
+            # main-<flavor>; sha-<sha7> and main name slim. The index
+            # annotation keeps the GHCR package linked to the repository.
+            primary="sha-$SHORT-$FLAVOR"
+            tags="-t $IMAGE:$primary -t $IMAGE:main-$FLAVOR"
+            if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:sha-$SHORT -t $IMAGE:main"; fi
+            annotations="--annotation index:org.opencontainers.image.source=$SOURCE"
+          else
+            # <ver>-<flavor> always; <ver> and latest name slim (the default
+            # flavor). The moving tags (latest, slim, full, gpl) only for
+            # stable releases.
+            primary="$VERSION-$FLAVOR"
+            tags="-t $IMAGE:$primary"
+            if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:$VERSION"; fi
+            if [ "$PRERELEASE" = "false" ]; then
+              tags="$tags -t $IMAGE:$FLAVOR"
+              if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:latest"; fi
+            fi
           fi
           # shellcheck disable=SC2046,SC2086
-          docker buildx imagetools create $tags \
+          docker buildx imagetools create $tags $annotations \
             $(printf "$IMAGE@sha256:%s " $(ls))
-          digest="$(docker buildx imagetools inspect "$IMAGE:$VERSION-$FLAVOR" | awk '/^Digest:/ { print $2; exit }')"
+          digest="$(docker buildx imagetools inspect "$IMAGE:$primary" | awk '/^Digest:/ { print $2; exit }')"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           docker buildx imagetools inspect "$IMAGE@$digest"
           mkdir -p "$RUNNER_TEMP/index"
@@ -358,8 +438,9 @@ jobs:
           retention-days: 1
 
   release:
-    # The GitHub release, once every flavor is tagged and signed.
-    if: github.event_name == 'push'
+    # The GitHub release, once every flavor is tagged and signed. Not for
+    # edge images (a push to main).
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     needs: [meta, merge]
     runs-on: ubuntu-24.04
     permissions:
@@ -422,7 +503,7 @@ jobs:
     # NOT ENABLED: runs only with the repository variable XI_NPM_PUBLISH set
     # to "enabled", once the package's trusted publisher is configured on
     # npmjs.com (docs/RELEASE.md "npm package").
-    if: vars.XI_NPM_PUBLISH == 'enabled' && github.event_name == 'push'
+    if: vars.XI_NPM_PUBLISH == 'enabled' && github.event_name == 'push' && github.ref_type == 'tag'
     needs: [meta, merge]
     runs-on: ubuntu-24.04
     permissions:

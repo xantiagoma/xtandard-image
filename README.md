@@ -89,7 +89,7 @@ It also speaks the URL formats of the services that inspired it, so you can move
 | `full` | `slim` + FFmpeg (video decode, VP9 and AV1 encode) + ONNX Runtime with face, object and classification models | no GPL code |
 | `gpl` | `full` + H.264 and HEVC encoding, and EPS/PostScript through sandboxed Ghostscript (off by default) | **contains GPL and AGPL software** |
 
-Each flavour is a linux/amd64 and linux/arm64 image at `ghcr.io/xantiagoma/xtandard-image`, tagged `<version>-<flavour>`. If you run or redistribute `gpl`, checking that its licences and the H.264/HEVC patents work for you is your job; if unsure, use `full`. The xtandard-image code itself is MIT. See [Getting started](docs/GETTING-STARTED.md#choose-a-flavour) for the details, and [ADR 0006](docs/adr/0006-license-policy.md) for the licence policy.
+Each flavour is a linux/amd64 and linux/arm64 image at `ghcr.io/xantiagoma/xtandard-image`, tagged `<version>-<flavour>`. Every push to `main` also publishes signed development images, `main-<flavour>` and an immutable `sha-<commit>-<flavour>` per commit ([edge images](docs/RELEASE.md#edge-images)); `latest` stays on the newest stable release. If you run or redistribute `gpl`, checking that its licences and the H.264/HEVC patents work for you is your job; if unsure, use `full`. The xtandard-image code itself is MIT. See [Getting started](docs/GETTING-STARTED.md#choose-a-flavour) for the details, and [ADR 0006](docs/adr/0006-license-policy.md) for the licence policy.
 
 ## Usage
 
