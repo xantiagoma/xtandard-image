@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 285" width="384" height="285" role="img" aria-label="xtandard-image">
+<title>xtandard-image</title>
+<defs><linearGradient id="chevron" x1="6" y1="22" x2="166" y2="282" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#65CEFC"/><stop offset=".45" stop-color="#2A95FB"/><stop offset="1" stop-color="#0C59FC"/></linearGradient><linearGradient id="sun" x1="297" y1="0" x2="297" y2="100" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8FDCFD"/><stop offset="1" stop-color="#4AAEF8"/></linearGradient><linearGradient id="peak" x1="246" y1="132" x2="356" y2="285" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E6F4FD"/><stop offset=".5" stop-color="#B4DEFB"/><stop offset="1" stop-color="#6DBAF8"/></linearGradient><linearGradient id="hill" x1="146" y1="202" x2="246" y2="285" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2FA0FB"/><stop offset="1" stop-color="#0A4DFB"/></linearGradient></defs>
+<path d="M251.1 141.4A22 22 0 0 1 285.4 141.1L379.7 255.6A18 18 0 0 1 365.8 285L175.1 285A18 18 0 0 1 161 255.9Z" fill="url(#peak)"/>
+<path d="M172.3 207.5A16 16 0 0 1 195.7 207.5L242.9 258.1A16 16 0 0 1 231.2 285L136.8 285A16 16 0 0 1 125.1 258.1Z" fill="url(#hill)"/>
+<circle cx="297" cy="50" r="50" fill="url(#sun)"/>
+<path d="M8.3 51.1A16 16 0 0 1 20.7 25L90.3 25A22 22 0 0 1 106.5 32.2L194.3 128.1A22 22 0 0 1 195.2 156.7L99.8 275.3A26 26 0 0 1 79.5 285L18.9 285A18 18 0 0 1 4.7 255.9L84.1 154A8 8 0 0 0 84 144.1Z" fill="url(#chevron)"/>
+</svg>

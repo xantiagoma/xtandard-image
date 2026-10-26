@@ -204,9 +204,17 @@ func TestPageAndAssets(t *testing.T) {
 		t.Error("page has an unfilled placeholder or loads from another origin")
 	}
 	version := string(m[1])
+	// The favicons come from the embedded FS, so CSP 'self' covers them (WP-153).
+	for _, ref := range []string{`rel="icon" href="assets/` + version + `/brand/favicon.svg"`, `href="assets/` + version + `/brand/favicon.ico"`} {
+		if !strings.Contains(string(body), ref) {
+			t.Errorf("page lacks %s", ref)
+		}
+	}
 	for name, ct := range map[string]string{
 		"app.js": "text/javascript; charset=utf-8", "style.css": "text/css; charset=utf-8",
 		"snippets/index.js": "text/javascript; charset=utf-8", "snippets/lang/go.js": "text/javascript; charset=utf-8",
+		"brand/favicon.svg": "image/svg+xml", "brand/favicon.ico": "image/x-icon",
+		"brand/apple-touch-icon.png": "image/png", "brand/symbol.svg": "image/svg+xml",
 	} {
 		res, body := f.do(t, get(t, "/_playground/assets/"+version+"/"+name))
 		if res.StatusCode != http.StatusOK || len(body) == 0 {
