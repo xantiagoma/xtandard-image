@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/xantiagoma/xtandard-image/security/advisories/new
+    about: Report vulnerabilities privately through GitHub's private vulnerability reporting, never in a public issue (SECURITY.md).
+  - name: Documentation
+    url: https://github.com/xantiagoma/xtandard-image/blob/main/docs/GETTING-STARTED.md
+    about: Getting started, configuration, URL dialects, formats and deployment guides.
+  - name: Getting help
+    url: https://github.com/xantiagoma/xtandard-image/blob/main/SUPPORT.md
+    about: Where to ask questions and what to include.
