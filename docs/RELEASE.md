@@ -4,7 +4,38 @@ How the app image `ghcr.io/xantiagoma/xtandard-image` is built, published and ve
 npm package `@xtandard/image` follows it ([npm package](#npm-package)).
 Design context: `docs/ARCHITECTURE.md` §14, `docs/go-standards.md` §9, ADR 0005, ADR 0009.
 
-**Status (2026-09-29):** `v0.1.0-rc.1` is the first prerelease. It was built and pushed **locally**, without Actions, as described in [Local release (no Actions)](#local-release-no-actions): three app flavours, both architectures, and the base images slim r7, full r8 and gpl r9 on GHCR (private packages). The images are not signed. Nothing is on npm yet, and the GitHub Pages site is not deployed. GitHub Actions minutes are exhausted (billing), so the `release` run that the tag push started failed as expected. `ci` and `nightly` are disabled; re-enable them with `gh workflow enable <name>`. Since WP-118, `release.yml` builds, verifies, signs and attests all three flavours, so re-running it for the tag once Actions is back publishes the signed equivalents of what the local release pushed.
+**Status (2026-10-25):** two prereleases are out, `v0.1.0-rc.1` (2026-09-29) and `v0.1.0-rc.2` (2026-10-24). Both were built and pushed **locally**, without Actions, as described in [Local release (no Actions)](#local-release-no-actions). Each has three app flavours for both architectures, and the base images are on GHCR. All of these are private packages while the repository is private. The images are not signed. Nothing is on npm or any other package registry yet, and the GitHub Pages site is not deployed. GitHub Actions is disabled on the repository (billing), so the `release` runs that the tag pushes started failed as expected. Re-enable Actions, then `ci` and `nightly`, with `gh workflow enable <name>`. Since WP-118, `release.yml` builds, verifies, signs and attests all three flavours, so re-running it for a tag once Actions is back publishes signed equivalents of what the local release pushed. What changed in each version is in [CHANGELOG.md](../CHANGELOG.md).
+
+## Versioning
+
+xtandard-image follows [ZeroVer](https://0ver.org): the major version stays at `0`, and there is no planned `1.0`. The sibling xtandard projects use the same convention. It means that options can still change. It does not mean the software is unfinished.
+
+**One version for the whole product.** The git tag `vX.Y.Z[-rc.N]` is the only source of the version. Every artefact released from that tag carries it, without the leading `v`:
+
+- the three image flavours (`slim`, `full`, `gpl`);
+- the `@xtandard/image` npm package;
+- the other official clients, once their publish jobs exist ([ADR 0013](adr/0013-official-clients.md) §6).
+
+A client at version `X.Y.Z` describes the server at version `X.Y.Z`. Its generated option types come from that version's catalogues and OpenAPI document. The committed manifests keep placeholder versions such as `0.0.0` or `0.1.0-SNAPSHOT`, and the release job sets the real version from the tag. Today `release.yml` publishes the images and (behind `XI_NPM_PUBLISH`) npm. The Go module follows its own tag, `clients/go/vX.Y.Z`. Swift uses the root `vX.Y.Z` tag directly. The other registries have no publish job yet.
+
+**What a bump means** in `0.MINOR.PATCH`:
+
+| Bump | Example | May contain |
+|---|---|---|
+| **MINOR** | `0.1.4` → `0.2.0` | Breaking changes: a configuration key or `XI_*` variable removed, renamed or with a new default; a URL option removed or with a new meaning; changes to response headers or status codes that clients see; client API changes. The [changelog](../CHANGELOG.md) lists each one under **Changed** or **Removed**, with what to do. |
+| **PATCH** | `0.2.0` → `0.2.1` | Fixes, security fixes, new options and variables that keep the old behaviour by default, new formats and dialects, base image refreshes. Nothing that breaks a working configuration or URL. |
+| **Prerelease** | `0.2.0-rc.1` | A release candidate of the next version, for testing. It can change before the final release. |
+
+Pin images to an exact version (`:0.2.1-full`) or by digest in production, and read the changelog before you move to a new minor. For npm, `^0.2.1` takes the patches but not the next minor, which is how npm reads caret ranges below `1.0`.
+
+**Where each version lands:**
+
+| Release | GHCR tags | npm dist-tag | GitHub release |
+|---|---|---|---|
+| Stable `vX.Y.Z` | `X.Y.Z`, `X.Y.Z-slim`, `X.Y.Z-full`, `X.Y.Z-gpl`, and the moving tags `latest`, `slim`, `full`, `gpl` | `latest` | release |
+| Prerelease `vX.Y.Z-rc.N` | `X.Y.Z-rc.N`, `X.Y.Z-rc.N-slim`, `X.Y.Z-rc.N-full`, `X.Y.Z-rc.N-gpl` only | `next` | prerelease |
+
+`X.Y.Z` and `latest` without a suffix are the `slim` flavour. There are no `X.Y` (for example `0.1`) or `X` tags: `release.yml` does not create them. For "the newest patch of this minor", use the moving flavour tag or pin an exact version. The tag check in `release.yml` accepts any `v<major>.<minor>.<patch>[-pre]`. Keeping the major at `0` is a policy of this document, and the workflow does not enforce it.
 
 ## What gets published
 
@@ -49,8 +80,8 @@ Build properties (enforced in the `Dockerfile`):
 ## Cutting a release
 
 1. Make sure `main` is green (CI `smoke` builds and verifies the image and `acceptance` runs the M1 suite against it, on both architectures) and that the slim, full and gpl base images for the current `docker/base/versions*.sh` pins are published (`base-image` workflow on `main`).
-2. Refresh the PGO profile if the hot path changed since the last release (below) and merge it.
-3. Check the user-facing docs: the README quick start must pass (CI `quickstart` runs it on every PR; locally `task quickstart`). For a minor or major release, rerun the benchmark against the release candidate (`task release:build && bench/run.sh`, [BENCHMARKS.md](BENCHMARKS.md)) and update `bench/RESULTS.md` when the numbers moved.
+2. Refresh the PGO profile if the hot path changed since the last release (below) and merge it. Pick the version ([Versioning](#versioning)): a minor bump if anything breaks a configuration, a URL or a client API, and a patch otherwise. Then move the `Unreleased` section of [CHANGELOG.md](../CHANGELOG.md) under the new version with today's date, and merge it.
+3. Check the user-facing docs: the quick start in the README and `docs/GETTING-STARTED.md` must pass (CI `quickstart` runs both; locally `task quickstart`). Point the README's `docker run` at the version you are about to tag (`scripts/quickstart.sh` swaps any `ghcr.io/xantiagoma/xtandard-image:<tag>` there for the local build). For a minor or major release, rerun the benchmark against the release candidate (`task release:build && bench/run.sh`, [BENCHMARKS.md](BENCHMARKS.md)) and update `bench/RESULTS.md` when the numbers moved.
 4. Tag and push:
 
    ```sh
@@ -60,7 +91,7 @@ Build properties (enforced in the `Dockerfile`):
    ```
 
 5. Watch `release` in Actions. Nothing is tagged until all six builds (three flavours, two architectures) have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
-6. Verify the published image (below) and edit the generated release notes if needed. After the first release, switch the README quick start from building to the published image: the `sh quickstart-build` block becomes `docker pull ghcr.io/xantiagoma/xtandard-image:slim && docker tag ghcr.io/xantiagoma/xtandard-image:slim xtandard-image`, or the later blocks use the GHCR name directly.
+6. Verify the published image (below) and edit the generated release notes if needed. After the first stable release, `docs/GETTING-STARTED.md` can lead with the published image instead of a local build: its `sh quickstart-build` block stays the CI build, and the prose names the moving `slim` tag.
 
 7. Check the published schema and API document (below, "Schema and API site"): the last `pages` run on `main` must be green, and `curl -fsS https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json | cmp - <(docker run --rm ghcr.io/xantiagoma/xtandard-image:X.Y.Z config schema)` must print nothing. If it differs, run the `pages` workflow from the tag.
 
