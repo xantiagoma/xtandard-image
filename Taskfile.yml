@@ -98,7 +98,7 @@ tasks:
     cmds: [sh scripts/acceptance.sh]
 
   quickstart:
-    desc: "Run the README quick start verbatim (scripts/quickstart.sh) against a fresh build tagged xtandard-image; XI_APP_BASE=xtandard-base:dev locally"
+    desc: "Run the quick start of README.md and docs/GETTING-STARTED.md verbatim (scripts/quickstart.sh) against a fresh build tagged xtandard-image; XI_APP_BASE=xtandard-base:dev locally"
     cmds:
       - XI_IMAGE=xtandard-image task release:build
       - sh scripts/quickstart.sh
