@@ -109,7 +109,7 @@ The minimum supported runtime is each ecosystem's oldest non-EOL version (Python
 
 ### 6. Versioning and publishing
 
-All clients follow the server's release line in lockstep, `0.x` before 1.0. The types describe that server version, as ADR 0009 says for npm. Nothing is published by WP-134. The targets, and the release job each language adds when the release pipeline publishes it (behind a repository variable like `XI_NPM_PUBLISH`):
+All clients follow the server's release line in lockstep, ~~`0.x` before 1.0~~ *(amended 2026-10-25, owner, WP-152: `0.x` with no planned 1.0, ZeroVer; docs/RELEASE.md "Versioning")*. The types describe that server version, as ADR 0009 says for npm. Nothing is published by WP-134. The targets, and the release job each language adds when the release pipeline publishes it (behind a repository variable like `XI_NPM_PUBLISH`):
 
 | Language | Registry | Name |
 |---|---|---|

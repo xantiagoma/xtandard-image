@@ -1,0 +1,49 @@
+name: Feature request
+description: A missing option, format, dialect, source, platform or client feature.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/xantiagoma/xtandard-image/blob/main/docs/ROADMAP.md) and the existing issues first: it may already be planned.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - URL dialect or processing option
+        - Input or output format
+        - Video or audio
+        - Detection or classification
+        - Sources (S3, GCS, Azure, http, …)
+        - Caching, headers, CDN
+        - Configuration or operations (metrics, tracing, deployment)
+        - Playground
+        - Official clients
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The use case, and what stops you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: The option, URL or behaviour you have in mind. If another server or CDN already does it (imgproxy, imgix, Cloudinary, …), link its docs, so the behaviour can match.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: licence
+    attributes:
+      label: Licences
+      options:
+        - label: I understand that new dependencies must fit the licence policy ([ADR 0006](https://github.com/xantiagoma/xtandard-image/blob/main/docs/adr/0006-license-policy.md)). GPL and AGPL code can only go in the opt-in `gpl` image.
