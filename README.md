@@ -58,7 +58,7 @@ docker rm -f xtandard-image
 
 Without signing keys, unsigned URLs are accepted only with common widths, heights and qualities (the `restricted` policy: 640, 750, 828, 1080, 1200 and so on; the server logs the list at startup). Any other size, and any host outside the allowlist, gets a 403. For production, add signing keys: [Getting started](docs/GETTING-STARTED.md) walks through signed URLs, `/info` and a Compose service for Dokploy or Coolify.
 
-While the repository is private, the GHCR packages need a `docker login ghcr.io` first, or you can [build the image](docs/GETTING-STARTED.md#1-get-the-image) from a clone.
+The images are public on GHCR; you can also [build the image](docs/GETTING-STARTED.md#1-get-the-image) from a clone.
 
 ## Why it exists
 

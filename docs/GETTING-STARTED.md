@@ -16,7 +16,7 @@ Every flavour is a multi-arch image (linux/amd64 and linux/arm64) on the same `u
 
 ## 1. Get the image
 
-The commands on this page use the published image, `ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2` (slim; add `-full` or `-gpl` to the tag for the other flavours). It is multi-arch (linux/amd64 and linux/arm64), unsigned for now, and a private package until the repository is public ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0-rc.2)). The moving `latest`, `slim`, `full` and `gpl` tags arrive with the first stable release, `v0.1.0` ([how tags map](RELEASE.md#versioning)).
+The commands on this page use the published image, `ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2` (slim; add `-full` or `-gpl` to the tag for the other flavours). It is multi-arch (linux/amd64 and linux/arm64), public on GHCR ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0-rc.2)). The moving `latest`, `slim`, `full` and `gpl` tags arrive with the first stable release, `v0.1.0` ([how tags map](RELEASE.md#versioning)).
 
 ```sh
 docker pull ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2
