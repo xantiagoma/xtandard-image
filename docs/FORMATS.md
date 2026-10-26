@@ -2,6 +2,12 @@
 
 libvips 8.18.x is the engine; library choices and licenses are in `docs/research/stack.md` and ADR 0006. Format detection is **always by magic bytes** (`codec.Sniff`), never by extension or upstream `Content-Type`. Every loader runs behind the probe stage, which reads only headers to enforce pixel, frame and page limits before any pixel decode.
 
+## At a glance
+
+Inputs: JPEG, PNG, GIF (animated), WebP (animated), AVIF, HEIC, JPEG XL, TIFF, BMP, ICO, SVG, JPEG 2000, UltraHDR, camera RAW (CR3, NEF, ARW, DNG and more, embedded preview first), PDF, PSD/PSB, OpenEXR, Radiance HDR, PBM/PGM/PPM/PAM/PFM, JPEG XR, TGA, PCX, DDS (BC1–BC7 including BC6H HDR, uncompressed and float), QOI, SGI, Sun raster, XBM, XPM, WBMP and ICNS, designer files (GIMP XCF flattened; OpenRaster and Krita composites, Procreate and Paint.NET thumbnails, Sketch previews and SVGZ, see [FORMATS §1.7](#17-designer-files-wp-107)), and EPS/PostScript/Illustrator in the opt-in `gpl` image with `XI_FORMATS_EPS_ENABLED=true` (AGPL Ghostscript in a sandboxed subprocess, off by default; elsewhere only a DOS EPS preview, see [FORMATS §1.6](#16-long-tail-inputs-wp-97) and [ADR 0011](adr/0011-ghostscript-subprocess.md)). Outputs: JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO (HEIC opt-in). Video input, GIF to video and video transformations need the `full` or `gpl` image ([§5.1](#51-video-output-wp-76), [§5.2](#52-video-transformations-m5-wp-121-core-wp-122-options-wp-123-audio-wp-126-streams)).
+
+The tables below give the loader, limits, metadata handling and flavour of each format. The "Milestone" column records when support landed ([CHANGELOG](../CHANGELOG.md)).
+
 ## 1. Input formats
 
 | Format | Loader | Anim / pages | Shrink-on-load | Metadata | Notes | Milestone |

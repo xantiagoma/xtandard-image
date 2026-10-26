@@ -1,11 +1,11 @@
 # URL dialects
 
-Every dialect parser turns a URL into the same `transform.Request` (see `ARCHITECTURE.md` §4). This document is the spec each parser work package implements. Researched September 2026; each section cites its upstream reference.
+How to write URLs for xtandard-image in each supported dialect: imgproxy, the query form (with imaginary's endpoints), imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, wsrv/weserv, the unpic providers and AWS Serverless Image Handler. Each section gives the grammar, how the options map, how the dialect signs URLs, and what is not supported. Each section also cites its upstream reference (researched September 2026). Every parser turns a URL into the same `transform.Request` ([ARCHITECTURE §4](ARCHITECTURE.md)), so options behave the same whichever dialect asked for them. Only imgproxy is enabled by default; [§1](#1-dialect-selection) shows how to mount the others.
 
 Conventions used below:
 
 - **TR** = `transform.Request`; `P` = the current `Pipeline`; `O` = `Output`; `D` = `Delivery`.
-- "M1/M2/M3" = roadmap milestone in which the option actually takes effect. Options scheduled for a later milestone are still **parsed** from M1 on (so URLs never 400 because of them); until implemented they are recorded in `TR.Ignored` and surfaced in `X-Xi-Ignored` when debug headers are on.
+- Milestone labels ("M1", "M2", …) in the tables record when an option started to take effect ([CHANGELOG](../CHANGELOG.md)). An option that is parsed but has no effect in your image (for example a detection option on `slim`) does not fail the URL. It is recorded in `TR.Ignored` and listed in `X-Xi-Ignored` when debug headers are on.
 - **Unsupported** = parsed and ignored forever (listed so behaviour is deliberate). In `XI_DIALECTS_STRICT=true` mode, unsupported and unknown options return 400 instead.
 
 ## 1. Dialect selection
