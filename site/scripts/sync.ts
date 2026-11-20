@@ -52,6 +52,7 @@ const readmeAnchors: Record<string, string> = {
   "": "",
   "quick-start": "#quick-start",
   disclaimer: "project/disclaimer/",
+  "the-xtandard-ecosystem": "project/ecosystem/",
   "status-and-versioning": "reference/changelog/",
 };
 
