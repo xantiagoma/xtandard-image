@@ -149,6 +149,7 @@ export const sidebar: Item[] = [
       { slug: "project/support", src: "SUPPORT.md", label: "Getting help" },
       { slug: "project/brand", src: "docs/BRAND.md", label: "Brand" },
       { slug: "project/disclaimer", src: "README.md", section: "Disclaimer", title: "Disclaimer", label: "Disclaimer" },
+      { slug: "project/ecosystem", src: "README.md", section: "The xtandard ecosystem", title: "The xtandard ecosystem", label: "The xtandard ecosystem" },
     ],
   },
 ];

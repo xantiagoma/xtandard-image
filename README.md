@@ -181,6 +181,18 @@ xtandard-image is a personal, non-commercial project. Its author built it for th
 - **Third-party software.** The Docker images bundle third-party libraries under their own licences. The `gpl` image includes GPL and AGPL software and patent-encumbered codecs (H.264, HEVC). Checking that they suit your use is your responsibility.
 - **Trademarks.** imgproxy, imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, AWS and the other names in this repository are trademarks of their respective owners. They appear only to describe compatibility (interoperability with their public URL formats). xtandard-image is not affiliated with, endorsed by or sponsored by any of them. Compatibility is best effort and may differ from their services.
 
+## The xtandard ecosystem
+
+xtandard-image is one of a family of open-source, MIT-licensed projects that share the xtandard name. They are independent of each other: use any of them on its own.
+
+| Project | What it is | Links |
+|---|---|---|
+| **xtandard-image** (this project) | A self-hosted image and video processing server in Go and libvips: imgproxy-compatible URLs plus the imgix, Cloudinary, ImageKit, Cloudflare and Thumbor dialects, with a TypeScript client (`@xtandard/image`) | [Docs](https://me.xantiagoma.com/xtandard-image/) · [npm](https://www.npmjs.com/package/@xtandard/image) |
+| **`@xtandard/lib`** | Lightweight, type-safe TypeScript utilities with a zero-dependency core | [Docs](https://me.xantiagoma.com/xtandard/) · [GitHub](https://github.com/xantiagoma/xtandard) · [npm](https://www.npmjs.com/package/@xtandard/lib) |
+| **`@xtandard/flags`** | A self-hosted, embeddable, OpenFeature-compatible feature-flag control plane with pluggable storage | [GitHub](https://github.com/xantiagoma/xtandard-flags) · [npm](https://www.npmjs.com/package/@xtandard/flags) |
+| **`@xtandard/webhooks`** | A self-hosted, embeddable, Standard Webhooks-compliant outbound-webhooks control plane: a Svix alternative as a library | [GitHub](https://github.com/xantiagoma/xtandard-webhooks) · [npm](https://www.npmjs.com/package/@xtandard/webhooks) |
+| **`@xtandard/xyte`** | A Zyte API-compatible `/v1/extract` client and server that runs on any proxy provider, or none | [Docs](https://me.xantiagoma.com/xyte/) · [GitHub](https://github.com/xantiagoma/xyte) · [npm](https://www.npmjs.com/package/@xtandard/xyte) |
+
 ## Contributing, security and licence
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the development setup, the checks CI runs, the commit style, and the rules for dependencies and licences. Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) explains, never in a public issue. Questions go where [SUPPORT.md](SUPPORT.md) says. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
