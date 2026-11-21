@@ -183,11 +183,12 @@ xtandard-image is a personal, non-commercial project. Its author built it for th
 
 ## The xtandard ecosystem
 
-xtandard-image is one of a family of open-source, MIT-licensed projects that share the xtandard name. They are independent of each other: use any of them on its own.
+xtandard-image is one of a family of open-source, MIT-licensed projects that share the xtandard name. They are independent of each other: use any of them on its own. The products share their building blocks through `@xtandard/kit`, a regular dependency you never install or configure yourself.
 
 | Project | What it is | Links |
 |---|---|---|
 | **xtandard-image** (this project) | A self-hosted image and video processing server in Go and libvips: imgproxy-compatible URLs plus the imgix, Cloudinary, ImageKit, Cloudflare and Thumbor dialects, with a TypeScript client (`@xtandard/image`) | [Docs](https://me.xantiagoma.com/xtandard-image/) · [npm](https://www.npmjs.com/package/@xtandard/image) |
+| **`@xtandard/kit`** | The shared building blocks of the xtandard products: storage drivers and conformance suite, auth, HTTP plumbing, adapters, admin shell and tooling | [Docs](https://me.xantiagoma.com/xtandard-kit/) · [GitHub](https://github.com/xantiagoma/xtandard-kit) · [npm](https://www.npmjs.com/package/@xtandard/kit) |
 | **`@xtandard/lib`** | Lightweight, type-safe TypeScript utilities with a zero-dependency core | [Docs](https://me.xantiagoma.com/xtandard/) · [GitHub](https://github.com/xantiagoma/xtandard) · [npm](https://www.npmjs.com/package/@xtandard/lib) |
 | **`@xtandard/flags`** | A self-hosted, embeddable, OpenFeature-compatible feature-flag control plane with pluggable storage | [Docs](https://me.xantiagoma.com/xtandard-flags/) · [GitHub](https://github.com/xantiagoma/xtandard-flags) · [npm](https://www.npmjs.com/package/@xtandard/flags) |
 | **`@xtandard/webhooks`** | A self-hosted, embeddable, Standard Webhooks-compliant outbound-webhooks control plane: a Svix alternative as a library | [Docs](https://me.xantiagoma.com/xtandard-webhooks/) · [GitHub](https://github.com/xantiagoma/xtandard-webhooks) · [npm](https://www.npmjs.com/package/@xtandard/webhooks) |
