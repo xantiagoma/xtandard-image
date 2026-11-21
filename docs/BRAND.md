@@ -29,6 +29,11 @@ embedded fonts or images. The originals are not in the repository.
 | `favicon.svg`, `favicon.ico` (16/32/48), `apple-touch-icon.png` (180) | Favicon set: the icon without the orbit lines and the shadow, which do not survive 16 px | Browser tabs: the playground (embedded, `internal/playground/assets/brand/`) and the Pages site |
 | `social.svg`, `social.png` (1280×640) | Social card: icon, wordmark, tagline, `docker run` line | The GitHub repository social preview (Settings → General → Social preview, uploaded by hand), `og:image` of the Pages site |
 
+In the horizontal lockups (and the monochrome ones) the symbol's vertical centre, over its full
+bounds, sits on the wordmark's optical centre: half of Urbanist's cap height (0.7 em) above the
+baseline, ignoring descenders. The symbol is 1 em (90 units) high, so the baseline is at 76.5 and the
+canvas is 99 high, the bottom of the `g` descender. Every xtandard repository uses the same rule.
+
 Rebuild the rasters after editing a master:
 
 ```sh
