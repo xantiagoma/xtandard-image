@@ -48,22 +48,23 @@ defmodule XtandardImage.StandIn do
   end
 
   defp serve(socket, handler) do
-    with {:ok, {:http_request, method, {:abs_path, target}, _}} <- :gen_tcp.recv(socket, 0, 5_000),
-         {:ok, headers} <- read_headers(socket, %{}),
-         {:ok, body} <- read_body(socket, headers["content-length"]) do
-      [path | query] = String.split(target, "?", parts: 2)
-      method = to_string(method)
+    _ =
+      with {:ok, {:http_request, method, {:abs_path, target}, _}} <- :gen_tcp.recv(socket, 0, 5_000),
+           {:ok, headers} <- read_headers(socket, %{}),
+           {:ok, body} <- read_body(socket, headers["content-length"]) do
+        [path | query] = String.split(target, "?", parts: 2)
+        method = to_string(method)
 
-      request = %{
-        method: method,
-        path: path,
-        query: List.first(query, ""),
-        headers: headers,
-        body: body
-      }
+        request = %{
+          method: method,
+          path: path,
+          query: List.first(query, ""),
+          headers: headers,
+          body: body
+        }
 
-      respond(socket, method, handler.(request))
-    end
+        respond(socket, method, handler.(request))
+      end
 
     :gen_tcp.close(socket)
   end
