@@ -4,7 +4,7 @@ module github.com/xantiagoma/xtandard-image/tools
 
 go 1.27.0
 
-toolchain go1.27.1
+toolchain go1.27.4
 
 tool (
 	golang.org/x/perf/cmd/benchstat

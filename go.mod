@@ -2,7 +2,7 @@ module github.com/xantiagoma/xtandard-image
 
 go 1.27.0
 
-toolchain go1.27.1
+toolchain go1.27.4
 
 // The TypeScript workspace (ADR 0009): never walk JS dependencies. The
 // official clients (ADR 0013) live in clients/; the Go client there is its

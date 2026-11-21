@@ -2,5 +2,5 @@
 # go.mod's `go 1.26.0` is the oldest release users need; this pin is the
 # development toolchain, the server's (root .mise.toml). CI tests 1.26 and 1.27.
 [tools]
-go = "1.27.1"
+go = "1.27.4"
 golangci-lint = "2.14.0"
