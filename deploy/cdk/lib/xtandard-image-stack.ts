@@ -39,7 +39,7 @@ export class XtandardImageStack extends Stack {
     });
 
     const container = taskDefinition.addContainer("xtandard-image", {
-      image: ecs.ContainerImage.fromRegistry(props.image ?? "ghcr.io/xantiagoma/xtandard-image:0.1.1-slim"),
+      image: ecs.ContainerImage.fromRegistry(props.image ?? "ghcr.io/xantiagoma/xtandard-image:0.1.2-slim"),
       readonlyRootFilesystem: true,
       user: "65532:65532",
       // SIGTERM → /readyz 503 → 5 s → drain up to 30 s.

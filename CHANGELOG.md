@@ -4,6 +4,38 @@ Each entry covers the server, its Docker images (`slim`, `full`, `gpl` on GHCR) 
 
 ## Unreleased
 
+## v0.1.2 (2026-11-21)
+
+A security and maintenance release: fixes for three bugs found by the nightly fuzzer, the Go 1.27.4 toolchain and dependency updates for every advisory `govulncheck` reports, and base images that no longer depend on the removed ONNX Runtime GitHub repository. No configuration, URL option or client API changes.
+
+### Security
+
+- **Go 1.27.4.** The server is built with Go 1.27.4 (was 1.27.1), which fixes the standard-library advisories GO-2026-6859, -6809, -6613, -6609, -6608, -6607, -6605, -6604, -6600 and -6599, and the http2 copies of the `golang.org/x/net` ones. The base image builders ship Go 1.27.4 (`8.18.6-r8-slim`, `-r11-full`, `-r12-gpl`).
+- **Dependencies:** `github.com/klauspost/compress` v1.20.5 (GO-2026-6865) and `golang.org/x/net` v0.63.0 (GO-2026-6617, -6612, -6611, -6610, -6603), which also raises `x/crypto`, `x/sync`, `x/sys` and `x/text`. `govulncheck ./...` reports no vulnerabilities.
+- **Bunny tokens are decoded strictly.** Base64 decoding used to ignore the spare low bits of the last character and skip CR and LF, so several spellings of one token (`…kzkA` and `…kzkB`, or a token with `%0D%0A` inside) verified for the same MAC. Only the spelling the Bunny SDKs emit (with or without trailing `=`) is accepted now. Found by `FuzzBunnyVerify`.
+
+### Fixed
+
+- **DDS (BC6H signed):** a signed 16-bit endpoint of `-0x8000` decoded to `-Inf`; signed endpoints are clamped to the symmetric half-float range. Found by `FuzzBlocks`.
+- **imgix `crop`:** a token shaped like an object class but unknown to the detector (`crop=a`) parsed as object gravity and then failed validation; it is now a 400 on `crop`. Found by `FuzzParse`.
+- Each fuzzer input is committed as a regression seed. A false positive in `FuzzLoadEnv` (a value that was part of the variable name counted as a leaked secret) is fixed too.
+
+### Changed
+
+- **Base images** take ONNX Runtime 1.30.0 (the `full` and `gpl` detection runtime) from Microsoft's official NuGet package `Microsoft.ML.OnnxRuntime`, because the `microsoft/onnxruntime` GitHub repository, and its release downloads, were removed in November 2026. Same version and files; `verify-image.sh` runs inference on both architectures.
+- **Brand:** pages show only the SVG logos (lockups and symbol, light and dark) and never the app-icon tile; the PNG logo rasters are gone. The horizontal lockups centre the symbol on the wordmark ([docs/BRAND.md](docs/BRAND.md)).
+- **Documentation site:** the home hero is the stacked lockup, and `og:url`, `og:image` and the sitemap use `https`. The README and the site list the xtandard ecosystem (lib, flags, webhooks, audit, links, entitlements, xyte).
+- **CI:** the .NET SDK is pinned exactly, Maven is installed with retries and a pinned checksum, and flaky or architecture-dependent tests (FITS dequantisation, the AVIF gain-map golden, the Rust stand-in server) were fixed at the root.
+- Every example and deploy file pins `0.1.2`.
+
+### Migration
+
+Nothing to change for clients that use the official SDKs, the documented URL formats or the Bunny SDKs:
+
+- A **Bunny token** spelled differently from what the SDKs produce (non-zero spare bits in its last base64 character, or a CR/LF inside) is now rejected as a bad signature. Regenerate such URLs with an SDK or the playground.
+- **`crop=<name>`** with a name that is neither a crop mode nor an object class the detector knows now answers 400 instead of failing later in validation. Check the class list in [URL dialects](docs/URL-DIALECTS.md).
+- If you build your own image **`FROM ghcr.io/xantiagoma/xtandard-image-base`**, the new revisions are `8.18.6-r8-slim`, `8.18.6-r11-full` and `8.18.6-r12-gpl` (and their `-builder` tags); the floating `slim`, `full` and `gpl` tags point at them.
+
 ## v0.1.1 (2026-10-26)
 
 The first release whose npm package, `@xtandard/image`, is published by the release workflow through npm trusted publishing (OIDC), with a provenance attestation.
