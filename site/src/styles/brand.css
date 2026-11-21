@@ -57,16 +57,6 @@
   color: var(--sl-color-gray-3);
 }
 
-/* The hero icon is a square app icon: keep it a sensible size. */
-.hero > img {
-  max-width: 12rem;
-}
-@media (max-width: 50rem) {
-  .hero > img {
-    max-width: 7rem;
-  }
-}
-
 /* Wide reference tables (CONFIG, URL-DIALECTS, ROADMAP) scroll inside the column. */
 .sl-markdown-content table {
   display: block;
