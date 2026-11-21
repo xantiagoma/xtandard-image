@@ -7,6 +7,12 @@ name: client-dotnet
 # licence check and the pack. Runs when the client, the shared spec and
 # fixtures, or this workflow change.
 #
+# global.json pins the SDK exactly (rollForward: disable): the SDK adds an
+# implicit Microsoft.NET.ILLink.Tasks reference at its own bundled runtime
+# patch, so a newer SDK on the runner image would change the locked graph
+# (NU1004). Bumping the SDK means bumping global.json, mise.toml and
+# dotnet-version below together and re-running `dotnet restore --force-evaluate`.
+#
 # The jobs run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
 # Locally: `task -d clients/dotnet ci`.
 on:
