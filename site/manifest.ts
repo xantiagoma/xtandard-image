@@ -16,9 +16,11 @@ export const branch = "main";
  * Where the site is served. GitHub Pages serves the project site of xantiagoma.github.io under
  * the account's custom domain (xantiagoma.github.io redirects there), so the origin is the custom
  * domain and the base is the repository name. pages.yml passes the values actions/configure-pages
- * reports (SITE_ORIGIN, SITE_BASE), so a domain change needs no code change.
+ * reports (SITE_ORIGIN, SITE_BASE), so a domain change needs no code change. configure-pages
+ * reports a custom domain as http while Pages has no certificate for it, so the origin is
+ * upgraded to https: canonical, og:url, og:image and sitemap URLs must not point at http.
  */
-export const siteOrigin = process.env.SITE_ORIGIN || "https://me.xantiagoma.com";
+export const siteOrigin = (process.env.SITE_ORIGIN || "https://me.xantiagoma.com").replace(/^http:\/\//, "https://");
 export const siteBase = (process.env.SITE_BASE || "/xtandard-image").replace(/\/+$/, "");
 /** The pinned image on the home page. */
 export const image = "ghcr.io/xantiagoma/xtandard-image:0.1.1";
