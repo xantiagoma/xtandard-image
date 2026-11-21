@@ -64,12 +64,15 @@ jobs:
         GOEXPERIMENT: cgocheck2 # go-standards §4: the race job also runs with cgocheck2
     steps:
       - uses: actions/checkout@v7
+      # Literal paths, not '**/go.sum': the post step re-evaluates the key on
+      # the host after the tests, and walking the tree fails on directories
+      # the tests created as root in the container (testdata/cache, 0750).
       - uses: actions/cache@v6
         with:
           path: |
             /gocache
             /gomodcache
-          key: test-${{ runner.arch }}-${{ hashFiles('**/go.sum') }}
+          key: test-${{ runner.arch }}-${{ hashFiles('go.sum', 'tools/go.sum') }}
           restore-keys: test-${{ runner.arch }}-
       - run: go test -race -shuffle=on ./...
 

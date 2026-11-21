@@ -20,6 +20,10 @@ EXCEPTIONS = {
   # redistribute and modify under either the 2-clause BSD licence or the
   # Ruby terms; json declares only "Ruby".
   "json" => /\ARuby\z/,
+  # Same licence (Ruby's COPYING, BSD-2-Clause option included); the openssl
+  # 3.2 default gem of Ruby 3.3 declares only "Ruby", openssl ≥ 3.3 declares
+  # "Ruby" and "BSD-2-Clause".
+  "openssl" => /\ARuby\z/,
 }.freeze
 # Feature name required in lib/ => gem name.
 STDLIB = { "json" => "json", "net/http" => "net-http", "openssl" => "openssl", "uri" => "uri" }.freeze
