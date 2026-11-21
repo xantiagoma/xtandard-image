@@ -1,4 +1,4 @@
-![xtandard-image](https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/logo-128.png)
+![xtandard-image](https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/symbol-light.svg)
 
 # xtandard-image for Go
 

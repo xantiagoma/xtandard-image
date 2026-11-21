@@ -22,20 +22,15 @@ pg=internal/playground/assets/brand
 
 # target master [rsvg-convert args...]: every raster and the master it comes from.
 rasters='
-logo.png logo.svg -w 1024 -h 1024
-logo-256.png logo.svg -w 256 -h 256
-logo-128.png logo.svg -w 128 -h 128
 apple-touch-icon.png logo.svg
-symbol.png symbol.svg -h 256
-lockup-horizontal-dark.png lockup-horizontal-dark.svg -z 2
-lockup-horizontal-light.png lockup-horizontal-light.svg -z 2
-lockup-stacked-dark.png lockup-stacked-dark.svg -z 2
-lockup-stacked-light.png lockup-stacked-light.svg -z 2
 social.png social.svg -w 1280 -h 640
 favicon.ico favicon.svg
 '
+# symbol-light.svg is symbol.svg with the light-background peak stop the light
+# lockups use, so the front mountain does not wash out on white.
+light_symbol() { sed 's/<stop offset="0" stop-color="#E6F4FD"\/>/<stop offset="0" stop-color="#C4E4FB"\/>/' "$a/symbol.svg"; }
 # The playground serves these from its embedded FS (CSP default-src 'self').
-pgfiles='favicon.svg favicon.ico apple-touch-icon.png symbol.svg'
+pgfiles='favicon.svg favicon.ico apple-touch-icon.png symbol.svg symbol-light.svg'
 
 if [ "${1:-}" = "--check" ]; then
   status=0
@@ -46,6 +41,10 @@ if [ "${1:-}" = "--check" ]; then
       exit 1
     fi
   done || status=1
+  if ! light_symbol | cmp -s - "$a/symbol-light.svg"; then
+    echo "brand-assets: $a/symbol-light.svg is not current with symbol.svg (run task brand:assets)" >&2
+    status=1
+  fi
   for f in $pgfiles; do
     if ! cmp -s "$a/$f" "$pg/$f"; then
       echo "brand-assets: $pg/$f differs from $a/$f (run task brand:assets)" >&2
@@ -86,6 +85,8 @@ if command -v oxipng >/dev/null; then
 else
   echo "brand-assets: oxipng not found, PNGs left unoptimised" >&2
 fi
+
+light_symbol >"$a/symbol-light.svg"
 
 mkdir -p "$pg"
 for f in $pgfiles; do cp "$a/$f" "$pg/$f"; done
