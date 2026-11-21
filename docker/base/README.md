@@ -26,7 +26,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r10-full` and `8.18.6-r11-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r8-slim`, `8.18.6-r11-full` and `8.18.6-r12-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -449,6 +449,9 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 | full builder | 331.1 MB | 921.0 MB | — |
 | gpl runtime (`8.18.6-r10-gpl`) | 141.7 MB | 288.1 MB | ≤ 170 MB (as full) |
 | gpl builder | 347.5 MB | 946.0 MB | — |
+
+slim r8 / full r11 / gpl r12: the builders carry Go 1.27.4 instead of 1.27.1
+(standard-library security fixes); the runtimes have the same contents as r7 / r10 / r11.
 
 full r9 / gpl r10 over r8 / r9 (WP-120, audio and video transformations, ADR 0012): full and
 gpl grow by 1.2–1.3 MB compressed / 2.4–2.6 MB uncompressed (runtime and builder alike) for

@@ -1,5 +1,5 @@
 # Containerised dev environment: the builder stage of the base image (WP-05),
-# which carries libvips, Go 1.27.1 (/usr/local/go) and golangci-lint.
+# which carries libvips, Go 1.27.4 (/usr/local/go) and golangci-lint.
 #
 #   docker compose -f compose.dev.yml run --rm dev task test
 #   XI_BASE_IMAGE=xtandard-base:dev docker compose -f compose.dev.yml run --rm dev sh scripts/lint.sh
