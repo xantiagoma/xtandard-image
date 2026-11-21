@@ -92,9 +92,7 @@ impl Server {
         thread::spawn(move || {
             for stream in listener.incoming() {
                 let Ok(stream) = stream else { continue };
-                if let Some(req) = serve(stream, &handler) {
-                    log.lock().expect("lock").push(req);
-                }
+                serve(stream, &handler, &log);
             }
         });
         Self { base, seen }
@@ -105,7 +103,7 @@ impl Server {
     }
 }
 
-fn serve(stream: TcpStream, handler: &impl Fn(&Seen) -> Reply) -> Option<Seen> {
+fn serve(stream: TcpStream, handler: &impl Fn(&Seen) -> Reply, log: &Mutex<Vec<Seen>>) -> Option<()> {
     let mut reader = BufReader::new(stream.try_clone().ok()?);
     let mut line = String::new();
     reader.read_line(&mut line).ok()?;
@@ -131,6 +129,10 @@ fn serve(stream: TcpStream, handler: &impl Fn(&Seen) -> Reply) -> Option<Seen> {
     }
     let req = Seen { method, target, headers, body: String::from_utf8_lossy(&body).into_owned() };
     let reply = handler(&req);
+    let head = req.method == "HEAD";
+    // Logged before the response goes out: once the client has its answer,
+    // `last()` must already see this request.
+    log.lock().expect("lock").push(req);
     let mut out =
         format!("HTTP/1.1 {} X\r\nConnection: close\r\nContent-Length: {}\r\n", reply.status, reply.body.len());
     for (k, v) in &reply.headers {
@@ -139,11 +141,10 @@ fn serve(stream: TcpStream, handler: &impl Fn(&Seen) -> Reply) -> Option<Seen> {
     out.push_str("\r\n");
     let mut stream = stream;
     stream.write_all(out.as_bytes()).ok()?;
-    if req.method != "HEAD" {
+    if !head {
         stream.write_all(&reply.body).ok()?;
     }
-    stream.flush().ok()?;
-    Some(req)
+    stream.flush().ok()
 }
 
 /// A base URL nothing listens on.
