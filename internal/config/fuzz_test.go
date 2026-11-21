@@ -105,7 +105,8 @@ func equalInts(a, b IntList) bool {
 
 // FuzzLoadEnv feeds one arbitrary XI_ variable to the loader: it must never
 // panic, and a value that fails to parse must not appear in the error when
-// the variable is a secret.
+// the variable is a secret. The error may name the variable, so a value that
+// is part of the name is not a leak.
 // Seeds: f.Add below plus testdata/fuzz/FuzzLoadEnv.
 func FuzzLoadEnv(f *testing.F) {
 	f.Add("SERVER_ADDR", ":1")
@@ -119,7 +120,8 @@ func FuzzLoadEnv(f *testing.F) {
 			return
 		}
 		_, _, err := load(opts(nil, "XI_"+key+"="+value, "XI_SOURCES_A_TYPE=http"))
-		if err != nil && strings.HasPrefix(key, "SIGNING_KEYS") && len(value) > 8 && strings.Contains(err.Error(), value) {
+		if err != nil && strings.HasPrefix(key, "SIGNING_KEYS") && len(value) > 8 && !strings.Contains(key, value) &&
+			strings.Contains(err.Error(), value) {
 			t.Fatalf("error leaks the key value: %v", err)
 		}
 	})
