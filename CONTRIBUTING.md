@@ -17,7 +17,7 @@ Read these before writing code:
 
 ## Development setup
 
-You need Git, Docker (Docker Desktop, OrbStack or a Linux engine, with Compose v2) and [mise](https://mise.jdx.dev). mise installs the pinned toolchain from [`.mise.toml`](.mise.toml): Go 1.27.1, golangci-lint 2.14.0, Bun 1.4.2 and [Task](https://taskfile.dev).
+You need Git, Docker (Docker Desktop, OrbStack or a Linux engine, with Compose v2) and [mise](https://mise.jdx.dev). mise installs the pinned toolchain from [`.mise.toml`](.mise.toml): Go 1.27.4, golangci-lint 2.14.0, Bun 1.4.2 and [Task](https://taskfile.dev).
 
 ```sh
 git clone https://github.com/xantiagoma/xtandard-image.git

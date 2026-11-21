@@ -1519,6 +1519,16 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "crop_unknown_class": {
+    "error": {
+      "field": "crop",
+      "kind": "invalid_url",
+      "public": "invalid crop: expected top, bottom, left, right, faces, focalpoint, entropy, edges, auto or an object class",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=a"
+  },
   "crop_with_fit_clip_ignored": {
     "path": "/photos/a.jpg",
     "query": "w=1\u0026h=1\u0026crop=top",

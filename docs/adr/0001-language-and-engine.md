@@ -9,7 +9,7 @@ The product must match imgproxy Pro features, support the widest format list in 
 
 ## Decision
 
-- Go 1.27 (`go 1.27.0`, `toolchain go1.27.1`), `CGO_ENABLED=1`, libvips pinned to 8.18.x.
+- Go 1.27 (`go 1.27.0`, `toolchain go1.27.4`), `CGO_ENABLED=1`, libvips pinned to 8.18.x.
 - Use `github.com/cshum/vipsgen` generated bindings for the long tail, imported **only** by `internal/vips`, which is also the only package that imports `"C"`.
 - A small hand-written C shim inside `internal/vips` (imgproxy-style fixed-arity functions, one boundary crossing per step) for hot or missing paths: load-from-buffer with `fail_on`, LibRaw embedded-preview loader, save-to-buffer, progress/kill hook bound to request contexts.
 - Parsers, planner, security, sources, fetcher and caches are pure Go and must build with `CGO_ENABLED=0`.

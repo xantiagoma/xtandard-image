@@ -4,14 +4,14 @@ Mandatory for every contributor and coding agent. Verified against live sources 
 
 ## 1. Toolchain
 
-**Go version.** Go 1.27.0 shipped 2026-08-19; current stable is **go1.27.1** (https://go.dev/doc/devel/release, https://go.dev/dl/?mode=json). Pin both directives:
+**Go version.** Go 1.27.0 shipped 2026-08-19; current stable (2026-11-21) is **go1.27.4** (https://go.dev/doc/devel/release, https://go.dev/dl/?mode=json). Pin both directives:
 
 ```
 go 1.27.0
-toolchain go1.27.1
+toolchain go1.27.4
 ```
 
-This is an application, not a library, so pin the newest language version on purpose. Do not accept the `go mod init` default: since 1.26 it writes N-1 (https://go.dev/doc/go1.26#go-command). We need 1.27 for: generic methods, `encoding/json` backed by v2, the GA `goroutineleak` profile, `synctest.Sleep`, `httptest.NewTestServer`, and `http.Server.MaxHeaderValueCount` (https://go.dev/doc/go1.27). Bump `toolchain` on each point release. CI uses `actions/setup-go` with `go-version-file: go.mod`, which uses the `toolchain` directive when it is present (https://github.com/actions/setup-go). The local machine runs 1.25.5, and `GOTOOLCHAIN=auto` downloads 1.27.1 automatically.
+This is an application, not a library, so pin the newest language version on purpose. Do not accept the `go mod init` default: since 1.26 it writes N-1 (https://go.dev/doc/go1.26#go-command). We need 1.27 for: generic methods, `encoding/json` backed by v2, the GA `goroutineleak` profile, `synctest.Sleep`, `httptest.NewTestServer`, and `http.Server.MaxHeaderValueCount` (https://go.dev/doc/go1.27). Bump `toolchain` on each point release. CI uses `actions/setup-go` with `go-version-file: go.mod`, which uses the `toolchain` directive when it is present (https://github.com/actions/setup-go). The local machine runs 1.25.5, and `GOTOOLCHAIN=auto` downloads 1.27.4 automatically.
 
 **Formatting.** Use `gofumpt` v0.12.0 (a stricter gofmt) plus `goimports`, both run through golangci-lint formatters. CI runs `golangci-lint fmt --diff` and fails on any diff.
 

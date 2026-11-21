@@ -40,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         # go.mod's minimum (go 1.26.0) and the development toolchain (mise.toml).
-        go: ['1.26.9', '1.27.1']
+        go: ['1.26.9', '1.27.4']
     env:
       GOTOOLCHAIN: local
     steps:
@@ -51,7 +51,7 @@ jobs:
           cache-dependency-path: clients/go/go.mod
       # golangci-lint's release binary (never through go get or a tool
       # directive; go-standards §1), the version of clients/go/mise.toml.
-      - if: matrix.go == '1.27.1'
+      - if: matrix.go == '1.27.4'
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.14.0
           golangci-lint fmt --diff

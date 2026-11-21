@@ -103,9 +103,22 @@ func (s bunnyHash) Sum(dst []byte, k *Key, msg string) []byte {
 func (bunnyHash) Encode(raw []byte) string { return base64.RawURLEncoding.EncodeToString(raw) }
 
 // Decode accepts unpadded or padded URL-safe base64 (the SDKs strip "=",
-// hand-written tokens may not).
+// hand-written tokens may not); see bunnyDecode.
 func (bunnyHash) Decode(dst []byte, sig string) ([]byte, error) {
-	return base64.RawURLEncoding.AppendDecode(dst, []byte(strings.TrimRight(sig, "=")))
+	return bunnyDecode(dst, sig)
+}
+
+// bunnyDecode decodes the base64 body of a token with exactly one accepted
+// spelling per MAC, the one the SDKs emit (up to trailing "="). Plain
+// base64 decoding ignores the spare low bits of the last character and
+// skips CR and LF, so "…kzkA" and "…kzkB" or a token with %0A inside
+// would all verify; strict decoding rejects non-zero spare bits and CR or
+// LF are rejected up front.
+func bunnyDecode(dst []byte, body string) ([]byte, error) {
+	if strings.ContainsAny(body, "\r\n") {
+		return dst, ErrMalformedSignature
+	}
+	return base64.RawURLEncoding.Strict().AppendDecode(dst, []byte(strings.TrimRight(body, "=")))
 }
 
 // bunnyHS256 is "HS256-" b64url(HMAC-SHA256(key, msg)).
@@ -142,7 +155,7 @@ func (bunnyHS256) Decode(dst []byte, sig string) ([]byte, error) {
 	if strings.HasPrefix(body, "1-") {
 		return dst, errBunnyIPLocked
 	}
-	return base64.RawURLEncoding.AppendDecode(dst, []byte(strings.TrimRight(body, "=")))
+	return bunnyDecode(dst, body)
 }
 
 // BunnyParam is one decoded query parameter of a Bunny URL.

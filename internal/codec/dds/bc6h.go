@@ -366,7 +366,8 @@ func signExtend(v int32, n uint8) int32 {
 	return v << s >> s
 }
 
-// unquantize scales an endpoint of n bits to the 16-bit interpolation range.
+// unquantize scales an endpoint of n bits to the 16-bit interpolation range:
+// [0, 0xFFFF] unsigned, [-0x7FFF, 0x7FFF] signed.
 func unquantize(v int32, n uint8, signed bool) int32 {
 	if !signed {
 		switch {
@@ -379,7 +380,10 @@ func unquantize(v int32, n uint8, signed bool) int32 {
 		}
 	}
 	if n >= 16 {
-		return v
+		// A 16-bit signed endpoint spans [-0x8000, 0x7FFF], but the
+		// half-float range is symmetric: -0x8000 would finish to 0xFC00
+		// (-Inf), so it is clamped to -0x7FFF like the positive side.
+		return max(v, -0x7FFF)
 	}
 	neg := v < 0
 	if neg {

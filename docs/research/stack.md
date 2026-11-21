@@ -87,7 +87,7 @@ libvips has **no native loader for BMP, ICO or PSD**: magick, or own loaders lik
 
 ## Recommended stack
 
-- **Language:** Go 1.27 (1.27.1 current as of 2026-09-26; pin `go 1.27.0`, `toolchain go1.27.1`), `CGO_ENABLED=1`, buildx matrix, native arm64 runners preferred.
+- **Language:** Go 1.27 (1.27.4 current as of 2026-11-21; pin `go 1.27.0`, `toolchain go1.27.4`), `CGO_ENABLED=1`, buildx matrix, native arm64 runners preferred.
 - **Binding:** vipsgen-generated bindings + own small cgo shim for hot paths (load from buffer/source, thumbnail, save to target, libraw thumbnail loader). Pin libvips 8.18.x. `VIPS_CONCURRENCY`, request semaphore sized to cores, `vips_cache_set_max(0)`, `MALLOC_ARENA_MAX=2` + jemalloc.
 - **Base image:** in-house deps on `ubuntu:noble` → `/opt/xtandard/lib`, multi-stage copy to slim runtime. Publish `ghcr.io/xantiagoma/xtandard-image-base:vips8.18.6-<flavor>-rN`.
 - **License policy:** LGPL/BSD/MIT/Apache only. No x265, poppler, exiv2, GPL ffmpeg, AGPL weights.
