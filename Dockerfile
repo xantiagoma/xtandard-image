@@ -4,7 +4,7 @@
 # full or gpl, on the base of the same flavor). WP-00 walking skeleton promoted
 # by WP-37, flavors by WP-118; see docs/RELEASE.md and docs/ARCHITECTURE.md §14.
 #
-#   stage build    <base>-<flavor>-builder: Go 1.27.1 + libvips headers → cgo binary
+#   stage build    <base>-<flavor>-builder: Go 1.27.4 + libvips headers → cgo binary
 #                  (-trimpath, -s -w, -pgo=auto with cmd/xtandard-image/default.pgo,
 #                  GOAMD64=v2 on amd64, GOARM64 left at v8.0)
 #   stage debug    unstripped binary for crash symbolication (only built with
@@ -26,8 +26,8 @@
 #     --build-arg BASE_RUNTIME=xtandard-base:dev .            # locally built base
 #   XI_APP_BASE=xtandard-base:dev-gpl task release:build     # gpl: XI_FLAVOR=gpl GO_TAGS=ffmpeg
 
-ARG BASE_BUILDER=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r7-slim-builder
-ARG BASE_RUNTIME=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r7-slim
+ARG BASE_BUILDER=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r8-slim-builder
+ARG BASE_RUNTIME=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r8-slim
 # App flavor: slim | full | gpl, matching the base (its dev.xtandard.base.flavor
 # label). It selects the OCI labels (licences, description, dev.xtandard.flavor)
 # and names the debug binary; full and gpl need GO_TAGS=ffmpeg (checked below).

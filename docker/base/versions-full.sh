@@ -10,11 +10,11 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Revision of the full flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_FULL_REVISION>-full.
-# Full r10 = slim r7 (versions.sh XI_BASE_REVISION) + the components below
+# Full r11 = slim r8 (versions.sh XI_BASE_REVISION) + the components below
 # (r9: FFmpeg audio, libswresample, libopus, LAME and the video-transformation
 # muxers and filters, WP-120, ADR 0012; r10: ONNX Runtime from NuGet instead of
-# the GitHub release).
-export XI_BASE_FULL_REVISION=10
+# the GitHub release; r11: slim r8's Go 1.27.4 builder).
+export XI_BASE_FULL_REVISION=11
 
 # --- Video (FFmpeg under LGPL-2.1+, GPL and nonfree parts disabled) ---------------
 # AV1 is decoded by dav1d and encoded by libaom; both are already built for slim
