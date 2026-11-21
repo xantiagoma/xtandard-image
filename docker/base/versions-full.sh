@@ -10,10 +10,11 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Revision of the full flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_FULL_REVISION>-full.
-# Full r9 = slim r7 (versions.sh XI_BASE_REVISION) + the components below
+# Full r10 = slim r7 (versions.sh XI_BASE_REVISION) + the components below
 # (r9: FFmpeg audio, libswresample, libopus, LAME and the video-transformation
-# muxers and filters, WP-120, ADR 0012).
-export XI_BASE_FULL_REVISION=9
+# muxers and filters, WP-120, ADR 0012; r10: ONNX Runtime from NuGet instead of
+# the GitHub release).
+export XI_BASE_FULL_REVISION=10
 
 # --- Video (FFmpeg under LGPL-2.1+, GPL and nonfree parts disabled) ---------------
 # AV1 is decoded by dav1d and encoded by libaom; both are already built for slim
@@ -34,10 +35,15 @@ export OPUS_SHA256=6ffcb593207be92584df15b32466ed64bbec99109f007c82205f019457241
 export LAME_VERSION=3.100
 export LAME_SHA256=ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e
 
-# --- ONNX Runtime (MIT), official prebuilt release, CPU execution provider ---------
+# --- ONNX Runtime (MIT), official prebuilt CPU library -----------------------------
+# Microsoft's NuGet package Microsoft.ML.OnnxRuntime (signed by Microsoft, immutable
+# on nuget.org): one .nupkg holds the linux-x64 and linux-arm64 libonnxruntime.so,
+# the C/C++ headers, LICENSE and ThirdPartyNotices.txt. The GitHub release tarballs
+# used until r9 went away with github.com/microsoft/onnxruntime (404 since 2026-11).
+# The SHA256 is of the .nupkg; its SHA-512 matches NuGet's catalog packageHash
+# (xTgo+P2WWI1BrKQb91+G8YR1s/SFH07xZuc42kdgS2I6GLGOAKnMVhFqCk7nmce6L6ajho8wAcqixYAiwfE79g==).
 export ONNXRUNTIME_VERSION=1.30.0
-export ONNXRUNTIME_SHA256_AMD64=a5ed5a3cac51fbb2e90da632ae43d19212faaa20e76484e62bcb7c23ddb3b3fd
-export ONNXRUNTIME_SHA256_ARM64=e16a27a8ed330bbc698df7330b0cf56e722f354e3bcc92118682c74ef3c3e3da
+export ONNXRUNTIME_SHA256=30df119bd9164eaa187666d93147448fdd4a9a1a3caf83f1505daf7af2d1c5d2
 
 # --- Detection models (ADR 0006: permissive licences only) --------------------------
 # YuNet face detector, MIT, from opencv_zoo at a pinned commit (Git LFS object, fetched

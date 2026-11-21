@@ -26,7 +26,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r9-full` and `8.18.6-r10-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r10-full` and `8.18.6-r11-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -148,7 +148,7 @@ Everything in slim, plus:
 | LAME | 3.100 (`LAME_VERSION`) | LGPL-2.0-or-later | `/opt/xtandard/lib/libmp3lame.so.*` | SourceForge release tarball, `libmp3lame` only (no frontend, no mpglib decoder; WP-120) |
 | FreeType, HarfBuzz, FriBidi, Fontconfig, DejaVu fonts | as slim | FTL, MIT, LGPL-2.1+, HPND-sell-variant, Bitstream Vera | already in slim | FFmpeg's `drawtext` links the slim builds and finds the slim fonts through `FONTCONFIG_PATH` (WP-120) |
 | dav1d, libaom | as slim (`DAV1D_VERSION`, `AOM_VERSION`) | BSD-2-Clause (+ AOM patent licence) | already in slim | FFmpeg links the slim builds: dav1d decodes AV1, libaom encodes it |
-| ONNX Runtime | 1.30.x (`ONNXRUNTIME_VERSION`) | MIT (bundled third-party notices in `share/licenses/onnxruntime/ThirdPartyNotices.txt`) | `/usr/local/lib/libonnxruntime.so.1*` (+ `ldconfig`); headers in `/usr/local/include/onnxruntime` and `libonnxruntime.pc` in the builder | official prebuilt `onnxruntime-linux-{x64,aarch64}-<v>.tgz` from GitHub releases, one SHA256 per architecture; CPU execution provider only (`libonnxruntime_providers_shared.so` is not shipped) |
+| ONNX Runtime | 1.30.x (`ONNXRUNTIME_VERSION`) | MIT (bundled third-party notices in `share/licenses/onnxruntime/ThirdPartyNotices.txt`) | `/usr/local/lib/libonnxruntime.so.1*` (+ `ldconfig`); headers in `/usr/local/include/onnxruntime` and `libonnxruntime.pc` in the builder | official prebuilt library from Microsoft's NuGet package `Microsoft.ML.OnnxRuntime` (one SHA256-pinned `.nupkg` with both architectures; the GitHub release tarballs used until full r9 went away with the upstream repository in 2026-11); CPU execution provider only (`libonnxruntime_providers_shared.so` is not shipped) |
 | YuNet | `face_detection_yunet_2023mar.onnx` | MIT | `/usr/share/xtandard/models/` + `.LICENSE` | opencv_zoo at a pinned commit (`YUNET_COMMIT`), Git LFS media URL, SHA256-pinned model and licence |
 | YOLOX-s | `yolox_s.onnx` (COCO, 80 classes) | Apache-2.0 | `/usr/share/xtandard/models/` + `.LICENSE` | Megvii YOLOX release `0.1.1rc0` asset, SHA256-pinned model and licence |
 | MobileNetV3-Large | `mobilenetv3_large_100.onnx` (ImageNet-1k classifier, 1000 classes; timm `mobilenetv3_large_100`, 75.8% top-1; WP-110) | Apache-2.0 | `/usr/share/xtandard/models/` + `.LICENSE` | ONNX Model Zoo (`onnx/models`) at a pinned commit (`CLASSIFIER_COMMIT`), Git LFS media URL, SHA256-pinned model and licence (the zoo's LICENSE) |

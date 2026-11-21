@@ -90,19 +90,34 @@ fetch OPUS_SHA256 opus \
 fetch LAME_SHA256 lame \
   "https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz"
 
-# ONNX Runtime: the official CPU build per architecture.
-onnxruntime_url() {
-  echo "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/onnxruntime-linux-$1-${ONNXRUNTIME_VERSION}.tgz"
-}
+# ONNX Runtime: the official CPU build from Microsoft's NuGet package (both
+# architectures in one .nupkg, a zip). Unpacked into the layout of the former GitHub
+# release tarball, which build-full-deps.sh reads: lib/libonnxruntime.so.<v> with the
+# libonnxruntime.so.1 (SONAME) and libonnxruntime.so symlinks, include/, LICENSE and
+# ThirdPartyNotices.txt. libonnxruntime_providers_shared.so is left out, as before.
+ort_nupkg="https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/${ONNXRUNTIME_VERSION}/microsoft.ml.onnxruntime.${ONNXRUNTIME_VERSION}.nupkg"
 if [ "$PRINT_CHECKSUMS" = "1" ]; then
-  fetch ONNXRUNTIME_SHA256_AMD64 onnxruntime "$(onnxruntime_url x64)"
-  fetch ONNXRUNTIME_SHA256_ARM64 onnxruntime "$(onnxruntime_url aarch64)"
+  download ONNXRUNTIME_SHA256 "$ort_nupkg"
 else
   case "$(uname -m)" in
-    x86_64) fetch ONNXRUNTIME_SHA256_AMD64 onnxruntime "$(onnxruntime_url x64)" ;;
-    aarch64) fetch ONNXRUNTIME_SHA256_ARM64 onnxruntime "$(onnxruntime_url aarch64)" ;;
+    x86_64) ort_rid=linux-x64 ;;
+    aarch64) ort_rid=linux-arm64 ;;
     *) echo "No prebuilt ONNX Runtime for $(uname -m)" >&2; exit 1 ;;
   esac
+  ort_file="$(download ONNXRUNTIME_SHA256 "$ort_nupkg")"
+  ort_dir="$FULL_DEPS_SRC/onnxruntime"
+  ort_tmp="$(mktemp -d "${TMPDIR:-/tmp}/xi-ort.XXXXXX")"
+  unzip -q "$ort_file" "runtimes/$ort_rid/native/libonnxruntime.so" 'build/native/include/*' \
+    LICENSE ThirdPartyNotices.txt -d "$ort_tmp"
+  rm -rf "$ort_dir"
+  mkdir -p "$ort_dir/lib" "$ort_dir/include"
+  install -m 0755 "$ort_tmp/runtimes/$ort_rid/native/libonnxruntime.so" \
+    "$ort_dir/lib/libonnxruntime.so.$ONNXRUNTIME_VERSION"
+  ln -s "libonnxruntime.so.$ONNXRUNTIME_VERSION" "$ort_dir/lib/libonnxruntime.so.1"
+  ln -s libonnxruntime.so.1 "$ort_dir/lib/libonnxruntime.so"
+  cp -a "$ort_tmp/build/native/include/." "$ort_dir/include/"
+  install -m 0644 "$ort_tmp/LICENSE" "$ort_tmp/ThirdPartyNotices.txt" "$ort_dir/"
+  rm -rf "$ort_tmp" "$ort_file"
 fi
 
 # Models: <name>.onnx next to <name>.LICENSE (check-licenses.sh --models enforces it).

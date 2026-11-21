@@ -62,7 +62,7 @@ libvips has **no native loader for BMP, ICO or PSD**: magick, or own loaders lik
 
 - libvips `smartcrop` `interesting=attention|entropy|centre|low|high|all`. https://www.libvips.org/API/8.18/method.Image.smartcrop.html
 - pigo: pure Go PICO cascade, frontal faces only. https://github.com/esimov/pigo
-- **ONNX Runtime 1.30 has official Go bindings**; YOLO-style face model runs 10–30 ms on CPU at 640 px. `onnxruntime-purego` avoids cgo. https://github.com/microsoft/onnxruntime/releases https://github.com/shota3506/onnxruntime-purego
+- **ONNX Runtime 1.30 has official Go bindings**; YOLO-style face model runs 10–30 ms on CPU at 640 px. `onnxruntime-purego` avoids cgo. https://www.nuget.org/packages/Microsoft.ML.OnnxRuntime https://github.com/shota3506/onnxruntime-purego (the full base takes ONNX Runtime from that NuGet package since full r10: the GitHub repository and its releases return 404 since 2026-11)
 - Ultralytics YOLO weights are AGPL → ship YuNet (OpenCV Zoo) or permissive SCRFD/RetinaFace; let users mount their own.
 
 **imgproxy Pro paid features** ($49/mo): advanced smart crop (faces), object-oriented crop/blur/draw, auto-quality by DSSIM and by file size, best-format, GIF→MP4, video thumbnails, PDF/PSD thumbnails, advanced watermarks (per-request URL, text, shadow, rotation), chained pipelines, colour adjustments, advanced compression, and (since v4.0.0, 2026-05-13) camera RAW loading behind `IMGPROXY_ENABLE_RAW_FORMATS` plus an internal result cache. https://imgproxy.net/features/ (verified in `.refs/imgproxy/CHANGELOG.md` and `imagetype/raw.go`)

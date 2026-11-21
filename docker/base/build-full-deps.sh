@@ -7,7 +7,7 @@
 #     plus the ffmpeg/ffprobe CLIs, --disable-gpl --disable-nonfree, linking the slim
 #     dav1d (AV1 decode), libaom (AV1 encode) and FreeType/HarfBuzz/FriBidi/Fontconfig
 #     (drawtext)
-#   - ONNX Runtime (MIT): the official prebuilt CPU library in /usr/local/lib
+#   - ONNX Runtime (MIT): the official prebuilt CPU library (NuGet Microsoft.ML.OnnxRuntime) in /usr/local/lib
 #   - detection models (YuNet MIT, YOLOX-s Apache-2.0) and the ImageNet classifier
 #     (MobileNetV3-Large, Apache-2.0) in /usr/share/xtandard/models
 # then extends the licence bundle and SOURCES.md and runs the licence gate.
@@ -267,7 +267,7 @@ done
   echo ""
   echo "Added by docker/base/build-full-deps.sh (versions-full.sh). FFmpeg and its codec"
   echo "libraries (libvpx, libopus, LAME) are dynamically linked (LGPL-2.1+); ONNX Runtime is the official prebuilt"
-  echo "library in ${ORT_PREFIX}/lib; the models are in ${MODELS_DIR}."
+  echo "library from the Microsoft.ML.OnnxRuntime NuGet package in ${ORT_PREFIX}/lib; the models are in ${MODELS_DIR}."
   echo ""
   echo "| File | Source | SHA256 |"
   echo "|---|---|---|"
