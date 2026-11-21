@@ -201,7 +201,9 @@ func (st *state) applyAR(apply bool) error {
 // combine into a compass point. faces and object classes are face and
 // object gravity (WP-72): without faces or objects of the classes the
 // planner uses the smart crop, like imgix's fallback; without the detector
-// (the slim image) they answer 422.
+// (the slim image) they answer 422. An object class is any name
+// transform.ResolveClass knows, the same check Validate makes, so an
+// unknown one is a 400 on crop rather than a request that fails to validate.
 func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, error) {
 	v, ok := st.get("crop")
 	if !ok {
@@ -227,7 +229,7 @@ func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, erro
 				detector = tok
 			}
 		default:
-			if !objectClass(tok) {
+			if _, ok := transform.ResolveClass(tok); !ok {
 				return transform.Gravity{}, dialect.InvalidArgument("crop", v, expCrop)
 			}
 			if detector == "" {
@@ -254,20 +256,6 @@ func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, erro
 		return transform.Gravity{Type: def}, nil
 	}
 	return transform.Gravity{Type: compass(hor, ver)}, nil
-}
-
-// objectClass reports whether s looks like a COCO class or supercategory
-// name ("car", "traffic light", "hair drier").
-func objectClass(s string) bool {
-	if s == "" || len(s) > 32 {
-		return false
-	}
-	for i := range len(s) {
-		if c := s[i]; (c < 'a' || c > 'z') && c != ' ' && c != '-' {
-			return false
-		}
-	}
-	return true
 }
 
 // compass maps horizontal (-1 left, 1 right) and vertical (-1 top,

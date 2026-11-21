@@ -100,6 +100,7 @@ func TestParams(t *testing.T) {
 		q("crop_auto", "w=1&h=1&fit=crop&crop=auto"),
 		q("crop_objects", "w=1&h=1&fit=crop&crop=car,vehicle,auto"),
 		q("crop_invalid", "w=1&h=1&fit=crop&crop=Top!"),
+		q("crop_unknown_class", "w=1&h=1&fit=crop&crop=a"),
 		q("crop_with_fit_min", "w=1&h=1&fit=min&crop=bottom"),
 		q("crop_with_fit_clip_ignored", "w=1&h=1&crop=top"),
 		q("crop_focalpoint", "w=1&h=1&fit=crop&crop=focalpoint&fp-x=0.2&fp-y=0.8&fp-z=3"),
