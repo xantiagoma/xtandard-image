@@ -171,6 +171,13 @@ func TestBunnyBasic(t *testing.T) {
 	if res, err := v.Verify(want+"==", msg); err != nil || res != sign.Verified {
 		t.Fatalf("padded Verify = %v, %v", res, err)
 	}
+	// One spelling per MAC: the last character's spare bits must be zero
+	// ("B" decodes like "A" without Strict), and CR/LF are not skipped.
+	for _, sig := range []string{"Ao9wBEuhqk4V_zyPZgkzkB", "Ao9wBEuhqk4V_zyPZgkzkB==", "Ao9wBEuhqk4V\n_zyPZgkzkA"} {
+		if res, err := v.Verify(sig, msg); !errors.Is(err, sign.ErrMalformedSignature) || res != sign.Unsigned {
+			t.Errorf("Verify(%q) = %v, %v; want malformed", sig, res, err)
+		}
+	}
 	s, err := sign.NewSigner(sign.NewBunnyBasicScheme(), rawKeyring(bunnyKey, ""))
 	if err != nil {
 		t.Fatal(err)
@@ -257,6 +264,7 @@ func TestBunnyVerifier(t *testing.T) {
 		{name: "ip_locked", sig: "HS256-1-L2rISTLcujMY9UFf2tbZ41d5i-Bme1g1oTK_Z2QMLJk", err: sign.ErrMalformedSignature},
 		{name: "bad_base64", sig: "HS256-!!!!", err: sign.ErrMalformedSignature},
 		{name: "short", sig: "HS256-AAAA", err: sign.ErrMalformedSignature},
+		{name: "line_break", sig: plain.sig[:20] + "\r\n" + plain.sig[20:], err: sign.ErrMalformedSignature},
 		{name: "layout_disabled", opts: sign.BunnyOptions{Layouts: sign.BunnyBasic}, sig: plain.sig, err: sign.ErrMalformedSignature},
 		{name: "second_key", opts: sign.BunnyOptions{Keys: rawKeyring("other", "", bunnyKey, "")}, sig: plain.sig, want: sign.Verified},
 		{name: "signing_off", opts: sign.BunnyOptions{Keys: sign.NewKeyring()}, sig: "garbage", want: sign.Unsigned},
