@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/lockup-horizontal-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/lockup-horizontal-light.png">
-    <img src="docs/assets/lockup-horizontal-light.png" alt="xtandard-image" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/lockup-horizontal-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/lockup-horizontal-light.svg">
+    <img src="docs/assets/lockup-horizontal-light.svg" alt="xtandard-image" width="420">
   </picture>
 </p>
 

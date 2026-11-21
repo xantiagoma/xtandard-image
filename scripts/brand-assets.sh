@@ -22,15 +22,7 @@ pg=internal/playground/assets/brand
 
 # target master [rsvg-convert args...]: every raster and the master it comes from.
 rasters='
-logo.png logo.svg -w 1024 -h 1024
-logo-256.png logo.svg -w 256 -h 256
-logo-128.png logo.svg -w 128 -h 128
 apple-touch-icon.png logo.svg
-symbol.png symbol.svg -h 256
-lockup-horizontal-dark.png lockup-horizontal-dark.svg -z 2
-lockup-horizontal-light.png lockup-horizontal-light.svg -z 2
-lockup-stacked-dark.png lockup-stacked-dark.svg -z 2
-lockup-stacked-light.png lockup-stacked-light.svg -z 2
 social.png social.svg -w 1280 -h 640
 favicon.ico favicon.svg
 '

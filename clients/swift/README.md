@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/logo-128.png" alt="xtandard-image" width="128" height="128"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/xantiagoma/xtandard-image/main/docs/assets/symbol.svg" alt="xtandard-image" width="128"></p>
 
 # xtandard-image for Swift
 

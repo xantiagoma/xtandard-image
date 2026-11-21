@@ -2,8 +2,11 @@
 
 The xtandard-image mark is a chevron (`>`, a request going through the proxy) beside an image
 glyph: a sun and two mountains. It comes as an app icon, a bare symbol and a wordmark lockup.
-Everything lives in [`docs/assets/`](assets/). The SVGs are the masters and every PNG and ICO is
-built from them (WP-153).
+Everything lives in [`docs/assets/`](assets/). The SVGs are the masters and the only files shown as
+a logo anywhere a person looks: READMEs, the docs site and the playground. Rasters exist only where a
+format requires one and nobody sees them as an icon on a page: `social.png` (`og:image` and the
+GitHub social preview must be raster), and `favicon.ico` and `apple-touch-icon.png` as `<head>`
+fallbacks. All three are built from the SVGs (WP-153).
 
 The owner provided the originals as AI-generated rasters at low resolution, with background-removal
 halos and no light-background wordmark. The SVGs redraw them as clean geometry: rounded polygons,
@@ -14,17 +17,16 @@ embedded fonts or images. The originals are not in the repository.
 
 | File | What it is | Use it for |
 |---|---|---|
-| `logo.svg` | App icon: the symbol on a near-black rounded square with faint orbit lines | The master for every square raster |
-| `logo.png` (1024), `logo-256.png`, `logo-128.png` | App icon rasters | Client READMEs and registries (`logo-128.png` at 128 px, or `logo-256.png` at `width="128"` for 2× screens), avatars, the GitHub org and repo picture, the Docker Hub/GHCR logo upload |
-| `symbol.svg`, `symbol.png` (256 high) | The symbol alone, transparent | Inline UI (the playground header), places that draw their own surface |
-| `lockup-horizontal-dark.svg` / `.png` (2×) | Symbol + wordmark, `xtandard-` in near-white | Headers on dark backgrounds: the README in GitHub dark mode, the Pages site in dark mode |
-| `lockup-horizontal-light.svg` / `.png` (2×) | Symbol + wordmark, `xtandard-` in ink | Headers on light backgrounds: the README in GitHub light mode, npm, the Pages site |
-| `lockup-stacked-{dark,light}.svg` / `.png` (2×) | Symbol left, `xtandard-` over `image` | Square-ish slots: slides, stickers, sidebars |
+| `logo.svg` | App icon: the symbol on a near-black rounded square with faint orbit lines | The docs site hero, avatars and logo uploads (export a PNG from it by hand where an upload form wants one); the master of `apple-touch-icon.png` |
+| `symbol.svg` | The symbol alone, transparent | Client READMEs, inline UI (the playground header), places that draw their own surface |
+| `lockup-horizontal-dark.svg` | Symbol + wordmark, `xtandard-` in near-white | Headers on dark backgrounds: the README in GitHub dark mode, the Pages site in dark mode |
+| `lockup-horizontal-light.svg` | Symbol + wordmark, `xtandard-` in ink | Headers on light backgrounds: the README in GitHub light mode, npm, the Pages site |
+| `lockup-stacked-{dark,light}.svg` | Symbol left, `xtandard-` over `image` | Square-ish slots: slides, stickers, sidebars |
 | `monochrome-white.svg`, `monochrome-black.svg` | One-colour horizontal lockup | Photos and busy backgrounds (white); print, fax and engraving (black) |
 | `favicon.svg`, `favicon.ico` (16/32/48), `apple-touch-icon.png` (180) | Favicon set: the icon without the orbit lines and the shadow, which do not survive 16 px | Browser tabs: the playground (embedded, `internal/playground/assets/brand/`) and the Pages site |
 | `social.svg`, `social.png` (1280×640) | Social card: icon, wordmark, tagline, `docker run` line | The GitHub repository social preview (Settings → General → Social preview, uploaded by hand), `og:image` of the Pages site |
 
-Rebuild every raster after editing a master:
+Rebuild the rasters after editing a master:
 
 ```sh
 task brand:assets   # sh scripts/brand-assets.sh: rsvg-convert (librsvg) + magick (ImageMagick 7), oxipng -o max when installed
@@ -37,13 +39,13 @@ own origin (CSP `default-src 'self'`).
 
 ### Where each file goes
 
-- **Root README header**: a `<picture>` that picks `lockup-horizontal-dark.png` or
-  `lockup-horizontal-light.png` with `prefers-color-scheme`, by relative `docs/assets/...` path. The
+- **Root README header**: a `<picture>` that picks `lockup-horizontal-dark.svg` or
+  `lockup-horizontal-light.svg` with `prefers-color-scheme`, by relative `docs/assets/...` path. The
   root README is not shipped to any registry, and relative paths also render while the repository is
   private (absolute raw URLs need a token there).
 - **Client READMEs** (`clients/*/README.md`, shipped to npm, PyPI, crates.io, pkg.go.dev, Packagist,
-  RubyGems, NuGet, Hex, pub.dev, Maven Central, Swift Package Index): `logo-128.png` by absolute raw
-  URL, because registries do not ship `docs/`. HTML `<p align="center"><img …></p>` where the registry
+  RubyGems, NuGet, Hex, pub.dev, Maven Central, Swift Package Index): `symbol.svg` by absolute raw
+  URL (`width="128"`), because registries do not ship `docs/`. HTML `<p align="center"><img …></p>` where the registry
   renders HTML (npm, PyPI, crates.io, Packagist, GitHub for Java/Kotlin/Swift/Ruby); plain Markdown
   `![xtandard-image](…)` for pkg.go.dev, NuGet, pub.dev and Hex/ex_doc, whose sanitisers drop or
   escape raw HTML.
@@ -52,8 +54,8 @@ own origin (CSP `default-src 'self'`).
 - **Social preview**: `social.png`.
 - **Docker / OCI**: there is no OCI annotation for a logo (`org.opencontainers.image.*` has title,
   description, url, source, documentation, licenses and so on, all set in the `Dockerfile`). Registries
-  that show one (Docker Hub, Artifact Hub for the Helm chart) take an upload or a URL: use `logo.png`
-  or `logo-256.png`. Artifact Hub reads `icon:` in `Chart.yaml` (`logo-256.png` by raw URL) when the
+  that show one (Docker Hub, Artifact Hub for the Helm chart) take an upload or a URL: use `logo.svg`
+  (or a PNG exported from it by hand). Artifact Hub reads `icon:` in `Chart.yaml` (`logo.svg` by raw URL) when the
   chart is listed there.
 
 ## Palette
