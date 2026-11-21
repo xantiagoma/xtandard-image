@@ -84,7 +84,7 @@ ships, unmodified or built from unmodified sources:
   and others, BSD-3-Clause.
 - LAME 3.100 (https://lame.sourceforge.io/), libmp3lame only, GNU Library
   General Public License version 2 or later, dynamically linked.
-- ONNX Runtime 1.30 (https://github.com/microsoft/onnxruntime),
+- ONNX Runtime 1.30 (https://onnxruntime.ai/, NuGet package Microsoft.ML.OnnxRuntime),
   Copyright (c) Microsoft Corporation, MIT License; third-party notices in
   share/licenses/onnxruntime/ThirdPartyNotices.txt.
 - YuNet face detection model face_detection_yunet_2023mar.onnx

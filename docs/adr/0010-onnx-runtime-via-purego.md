@@ -7,7 +7,7 @@
 
 Face and object detection (WP-71, ROADMAP open question 7: YuNet, MIT, and YOLOX-s, Apache-2.0)
 runs ONNX models on ONNX Runtime (MIT), which the `full` base image ships as the official
-prebuilt `libonnxruntime.so.1` (1.30.0, WP-70). The slim image has no ONNX Runtime and must
+prebuilt `libonnxruntime.so.1` (1.30.0, WP-70; from the NuGet package `Microsoft.ML.OnnxRuntime` since full r10, because github.com/microsoft/onnxruntime returns 404 since 2026-11). The slim image has no ONNX Runtime and must
 keep building, starting and passing its tests, and `CGO_ENABLED=0` builds of the module must
 keep compiling.
 

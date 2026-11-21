@@ -136,6 +136,10 @@ RUN ./split-runtime.sh vips vipsheader
 # full flavor (WP-70): FFmpeg (LGPL, video only) + libvpx, ONNX Runtime, models.
 FROM base AS full-deps-src
 
+# unzip for the ONNX Runtime NuGet package (a zip).
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends unzip \
+  && rm -rf /var/lib/apt/lists/*
 COPY versions-full.sh download-full-deps.sh ./
 RUN ./download-full-deps.sh
 
