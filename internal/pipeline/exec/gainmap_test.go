@@ -134,6 +134,7 @@ func TestGainMapHDR(t *testing.T) {
 		peak                   float64         // brightest linear sample at least (1 = SDR white)
 		skipped                []string
 		golden                 string
+		tolerance              float64 // DSSIM; 0 means golden.DefaultTolerance
 	}{
 		{
 			name: "uhdr avif", fixture: gmUHDR, options: "ph:1/rs:fit:160:0", out: transform.FormatAVIF,
@@ -178,6 +179,9 @@ func TestGainMapHDR(t *testing.T) {
 		{
 			name: "tmap avif", fixture: gmTmap, options: "ph:1/rs:fit:200:0", out: transform.FormatAVIF,
 			format: vips.BandFormatUshort, peak: 1.5, golden: "gainmap-tmap-avif-pq",
+			// The golden was written on arm64; libaom's lossy encode takes
+			// other SIMD paths on amd64, where this one scores DSSIM 0.0184.
+			tolerance: 0.025,
 		},
 		{
 			name: "tmap jxl", fixture: gmTmap, options: "ph:1/rs:fit:200:0", out: transform.FormatJXL,
@@ -218,7 +222,7 @@ func TestGainMapHDR(t *testing.T) {
 				t.Errorf("SDR output with a linear sample of %.3f", peak)
 			}
 			if tc.golden != "" {
-				golden.Compare(t, "exec/"+tc.golden, hdrImage(lin, w, h), golden.Options{})
+				golden.Compare(t, "exec/"+tc.golden, hdrImage(lin, w, h), golden.Options{Tolerance: tc.tolerance})
 			}
 		})
 	}
