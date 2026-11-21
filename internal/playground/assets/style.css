@@ -102,6 +102,13 @@ body { margin: 0; background: var(--bg); color: var(--fg); }
 }
 .top h1 { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: 1.3rem; letter-spacing: -.01em; }
 .top h1 .logo { width: 2.1rem; height: auto; flex: none; }
+.top h1 .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .top h1 .logo-light { display: none; }
+  :root:not([data-theme="light"]) .top h1 .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .top h1 .logo-light { display: none; }
+:root[data-theme="dark"] .top h1 .logo-dark { display: block; }
 .top h1 b { color: var(--accent); font-weight: inherit; }
 .top h1 .sub { color: var(--muted); font-weight: 500; }
 .meta { margin: .15rem 0 0; color: var(--muted); font-size: .9rem; }

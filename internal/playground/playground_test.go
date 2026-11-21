@@ -214,7 +214,7 @@ func TestPageAndAssets(t *testing.T) {
 		"app.js": "text/javascript; charset=utf-8", "style.css": "text/css; charset=utf-8",
 		"snippets/index.js": "text/javascript; charset=utf-8", "snippets/lang/go.js": "text/javascript; charset=utf-8",
 		"brand/favicon.svg": "image/svg+xml", "brand/favicon.ico": "image/x-icon",
-		"brand/apple-touch-icon.png": "image/png", "brand/symbol.svg": "image/svg+xml",
+		"brand/apple-touch-icon.png": "image/png", "brand/symbol.svg": "image/svg+xml", "brand/symbol-light.svg": "image/svg+xml",
 	} {
 		res, body := f.do(t, get(t, "/_playground/assets/"+version+"/"+name))
 		if res.StatusCode != http.StatusOK || len(body) == 0 {
