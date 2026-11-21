@@ -39,7 +39,16 @@ func sampleSource(t *testing.T, name string) (samples, int) {
 
 // TestQuantisedTilesMatchCfitsio compares the dequantised floats with
 // funpack's output (testdata/gen/fits-fpack.sh): the dither sequence, its
-// seed and the per-tile scales must match cfitsio exactly.
+// seed and the per-tile scales must match cfitsio.
+//
+// The dequantisation (q-r+0.5)*scale+zero is contracted into one FMA on arm64
+// (by Go, and by gcc for the funpack that wrote the references) but not on
+// amd64. fpack picks ZZERO near 2e11 and q near -2^31, so the sum cancels and
+// the unfused product's rounding (an ULP of 2e11 in float64, about 3e-5)
+// survives: amd64 lands a few float32 ULPs away from the references. A wrong
+// dither value, seed or scale moves a sample by a fraction of the
+// quantisation step (ZSCALE, about 100 here), so maxDequantDiff still
+// catches it.
 func TestQuantisedTilesMatchCfitsio(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{"rice-f32", "gzip2-f32", "dither2-f32"} {
@@ -49,13 +58,17 @@ func TestQuantisedTilesMatchCfitsio(t *testing.T) {
 			want, _ := sampleSource(t, name+".ref.fits")
 			for i := range n {
 				g, w := got(0, i), want(0, i)
-				if math.IsNaN(w) != math.IsNaN(g) || (!math.IsNaN(w) && float32(g) != float32(w)) {
+				if math.IsNaN(w) != math.IsNaN(g) || (!math.IsNaN(w) && math.Abs(g-w) > maxDequantDiff) {
 					t.Fatalf("sample %d = %v, want %v", i, g, w)
 				}
 			}
 		})
 	}
 }
+
+// maxDequantDiff bounds the cross-architecture rounding difference of
+// TestQuantisedTilesMatchCfitsio.
+const maxDequantDiff = 1e-3
 
 func TestMTF(t *testing.T) {
 	t.Parallel()
