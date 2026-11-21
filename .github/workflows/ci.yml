@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # cgo jobs run in the builder stage of the base image (WP-05): libvips,
-# Go 1.27.1 at /usr/local/go and golangci-lint v2.14.0 on PATH. Same image and
+# Go 1.27.4 at /usr/local/go and golangci-lint v2.14.0 on PATH. Same image and
 # env as compose.dev.yml / `task docker:*`. Override the image with the
 # repository variable XI_BASE_IMAGE.
 jobs:

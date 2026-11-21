@@ -8,14 +8,15 @@
 # Bump a version, then run ./update-checksums.sh to refresh the *_SHA256 lines.
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
-# Image revision: bump when the image changes without a libvips version change.
-export XI_BASE_REVISION=7
+# Image revision: bump when the image changes without a libvips version change
+# (r8: Go 1.27.4 in the builder, standard-library security fixes).
+export XI_BASE_REVISION=8
 export XI_BASE_FLAVOR=slim
 
 # --- Toolchains ---------------------------------------------------------------
-export GOLANG_VERSION=1.27.1
-export GOLANG_SHA256_AMD64=63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445
-export GOLANG_SHA256_ARM64=3450b45a3f9ee8568792736a5c5e70a1f2e9b36c35a8f74958c03e51d7d92bec
+export GOLANG_VERSION=1.27.4
+export GOLANG_SHA256_AMD64=7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840
+export GOLANG_SHA256_ARM64=3392582988a273a87ab5043ee1b2c9c17a2c3c00580bf9326c47a2e0aaaeac92
 export GOLANGCI_LINT_VERSION=2.14.0
 export GOLANGCI_LINT_SHA256_AMD64=ab90aeb7b066f92a33415b638a50fe5344bbb75a0d32ad30cc248d88f81032ab
 export GOLANGCI_LINT_SHA256_ARM64=ee7ec5f3453d15ddf106fae5a4d6c71737712348a979d1fe9cd52ec7ea299bae
